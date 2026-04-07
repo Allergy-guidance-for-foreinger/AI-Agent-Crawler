@@ -9,6 +9,7 @@ Gemini API와 Python으로 금오공대 급식표를 수집·분석합니다.
 | `crawler/` | 급식표 HTML 크롤링, Spring Boot 전송(`push_menus`) |
 | `menu_allergy/` | 메뉴 문구 기반 재료·알레르기 추정 (Gemini) |
 | `food_image/` | 음식 이미지 기반 식재료 추정 (Gemini Vision) |
+| `user_features/` | 알레르기 필터, 다국어 요약, 확장 Spring 페이로드 |
 
 ## 준비
 
@@ -133,6 +134,47 @@ public class MenuIngestController {
 ```
 
 CORS가 필요하면 `@CrossOrigin` 또는 `WebMvcConfigurer`로 허용 origin을 설정하세요. 다른 경로·필드명을 쓰는 경우 Python 쪽 `crawler/spring_payload.py`의 키를 서버와 동일하게 맞추면 됩니다.
+
+### 5. 사용자 기능: 알레르기 필터
+
+`menu_allergy`로 만든 CSV(`알레르기_요약` 열 필요)에서, **선택한 알레르기가 걸리는 메뉴만** 골라 냅니다.
+
+```bash
+# 식약처 표기 기준 canonical 목록
+python -m user_features.allergy_filter --list-allergens
+
+# 콘솔 표
+python -m user_features.allergy_filter --csv menu_allergy_gemini.csv --allergens 우유,대두,난류
+
+# 오늘(한국 서울 요일) 열만
+python -m user_features.allergy_filter --csv menu_allergy_gemini.csv --allergens 우유 --today-only
+
+# API용 JSON (userAllergensKo + avoidMenus)
+python -m user_features.allergy_filter --csv menu_allergy_gemini.csv --allergens 우유,밀 --json
+```
+
+### 6. 다국어 메뉴·알레르기 요약 (Gemini)
+
+분석 CSV 일부를 넘겨 **영어 등**으로 요약한 JSON을 만듭니다 (의료 단정 아님 문구 포함).
+
+```bash
+python -m user_features.i18n_summary --csv menu_allergy_gemini.csv --locale en --limit 20 -o i18n_menu_en.json
+python -m user_features.i18n_summary --help
+```
+
+### 7. 확장 페이로드로 Spring에 POST
+
+크롤 원본 + (선택) 분석 CSV + 사용자 알레르기 + (선택) i18n 을 한 번에 보냅니다.
+
+```bash
+python -m user_features.push_extended --dry-run --analysis-csv menu_allergy_gemini.csv --allergens 우유,대두
+
+# i18n까지 Gemini로 생성 후 전송 (API 키·URL 필요)
+python -m user_features.push_extended --url http://localhost:8080/api/menus/ingest \
+  --analysis-csv menu_allergy_gemini.csv --allergens 우유 --with-i18n --i18n-locale en
+```
+
+확장 페이로드에 추가되는 필드 예: `userAllergensKo`, `avoidMenus` (영문 키), `i18nSummary` (객체). 서버 DTO는 프로젝트에 맞게 확장하면 됩니다.
 
 ## 참고
 
