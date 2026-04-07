@@ -12,7 +12,8 @@ from typing import Any, AsyncIterator
 from zoneinfo import ZoneInfo
 
 import requests
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Security, UploadFile
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from google import genai
 
 import repo_env
@@ -22,6 +23,9 @@ from crawler.spring_payload import build_menu_ingest_payload
 from food_image.agent import analyze_food_image_bytes
 
 logger = logging.getLogger(__name__)
+security = HTTPBearer(auto_error=False)
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
 WEEKDAY_TO_INDEX = {
@@ -138,7 +142,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             )
             await asyncio.sleep(max((target - now).total_seconds(), 1))
             try:
-                _run_weekly_crawl_once(CONFIG)
+                result = await asyncio.to_thread(_run_weekly_crawl_once, CONFIG)
+                logger.info("weekly crawl forwarding succeeded: %s", result)
             except Exception:
                 # 실패 시 프로세스를 죽이지 않고 다음 주기를 기다린다.
                 logger.exception("weekly crawl forwarding failed")
@@ -150,6 +155,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         task = getattr(app.state, "weekly_task", None)
         if task:
             task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
 
 app = FastAPI(title="AI-Agent-Crawler Live Service", lifespan=lifespan)
@@ -159,14 +168,20 @@ app = FastAPI(title="AI-Agent-Crawler Live Service", lifespan=lifespan)
 def health() -> dict[str, Any]:
     return {
         "ok": True,
-        "weeklyCrawlTarget": CONFIG.spring_menus_url,
-        "imageAnalysisTarget": CONFIG.spring_image_url,
+        "weeklyCrawlConfigured": CONFIG.spring_menus_url is not None,
+        "imageAnalysisConfigured": CONFIG.spring_image_url is not None,
         "timezone": CONFIG.timezone_name,
     }
 
 
 @app.post("/crawl-and-forward")
-def crawl_and_forward() -> dict[str, Any]:
+def crawl_and_forward(
+    credentials: HTTPAuthorizationCredentials | None = Security(security),
+) -> dict[str, Any]:
+    if CONFIG.spring_api_token and (
+        credentials is None or credentials.credentials != CONFIG.spring_api_token
+    ):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     try:
         return _run_weekly_crawl_once(CONFIG)
     except Exception as e:
@@ -187,8 +202,12 @@ async def analyze_image_and_forward(
     image_bytes = await image.read()
     if not image_bytes:
         raise HTTPException(status_code=400, detail="이미지 파일이 비어 있습니다.")
+    if len(image_bytes) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=413, detail="이미지 파일이 너무 큽니다 (최대 10MB).")
 
     mime_type = image.content_type or "image/jpeg"
+    if mime_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(status_code=400, detail=f"지원하지 않는 이미지 형식: {mime_type}")
     try:
         analysis = await asyncio.to_thread(
             analyze_food_image_bytes, CLIENT, CONFIG.gemini_model, image_bytes, mime_type
