@@ -14,11 +14,15 @@ Gemini API와 Python으로 금오공대 급식표를 수집·분석합니다.
 
 ```bash
 pip install -r requirements.txt
+cp .env.example .env
 ```
+
+`.env`에 비밀 값을 넣습니다(이 파일은 Git에 올라가지 않습니다). `menu_allergy`, `food_image`, `crawler.push_menus` 실행 시 **저장소 루트의 `.env`**를 자동으로 읽습니다.
 
 Gemini를 쓰는 스크립트는 API 키가 필요합니다.
 
 ```bash
+# .env 안에 GEMINI_API_KEY=... 입력하거나, 터미널에서:
 export GEMINI_API_KEY='여기에_키'
 ```
 

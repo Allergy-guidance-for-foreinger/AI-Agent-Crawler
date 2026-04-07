@@ -10,6 +10,7 @@ import sys
 
 import requests
 
+import repo_env
 from crawler.kumoh_menu import load_menus
 from crawler.spring_payload import build_menu_ingest_payload
 
@@ -31,6 +32,8 @@ def post_menu_ingest(
 
 
 def main() -> None:
+    repo_env.load_dotenv_from_repo_root()
+
     parser = argparse.ArgumentParser(
         description="급식표 크롤링 후 Spring Boot 서버로 POST",
     )
@@ -78,7 +81,7 @@ def main() -> None:
 
     if not args.url:
         raise SystemExit(
-            "POST할 URL이 없습니다. --url 또는 환경변수 SPRING_MENUS_URL 을 설정하세요."
+            "POST할 URL이 없습니다. --url 또는 환경변수 SPRING_MENUS_URL(.env 가능)을 설정하세요."
         )
 
     token = os.environ.get("SPRING_API_TOKEN", "").strip() or None
