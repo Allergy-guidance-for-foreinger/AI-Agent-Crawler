@@ -72,8 +72,12 @@ Produce the JSON object as specified in the system instructions. Set "locale" to
 
     resp = client.models.generate_content(
         model=model_name,
-        contents=[I18N_SYSTEM, user_prompt],
-        config=types.GenerateContentConfig(temperature=0.2, max_output_tokens=8192),
+        contents=[user_prompt],
+        config=types.GenerateContentConfig(
+            system_instruction=I18N_SYSTEM,
+            temperature=0.2,
+            max_output_tokens=8192,
+        ),
     )
     raw = (getattr(resp, "text", "") or "").strip()
     if not raw:
