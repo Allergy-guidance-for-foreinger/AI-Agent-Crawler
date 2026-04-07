@@ -9,6 +9,7 @@ import mimetypes
 import os
 from pathlib import Path
 
+import repo_env
 from google import genai
 from google.genai import types
 
@@ -73,6 +74,8 @@ def analyze_food_image(client: genai.Client, model_name: str, image_path: str | 
 
 
 def main() -> None:
+    repo_env.load_dotenv_from_repo_root()
+
     parser = argparse.ArgumentParser(description="음식 이미지 식재료 추정 (Gemini)")
     parser.add_argument(
         "image",
@@ -96,7 +99,7 @@ def main() -> None:
     if not api_key:
         raise SystemExit(
             "환경변수 GEMINI_API_KEY가 없습니다. "
-            "예: export GEMINI_API_KEY='...'"
+            ".env 파일(cp .env.example .env) 또는 export GEMINI_API_KEY='...' 로 설정하세요."
         )
 
     print("사용 모델:", args.model)

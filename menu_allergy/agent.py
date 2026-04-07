@@ -15,6 +15,7 @@ from google import genai
 from google.api_core import exceptions as google_api_exceptions
 from google.genai import types
 
+import repo_env
 from crawler.kumoh_menu import load_menus
 
 SYSTEM_INSTRUCTION = """당신은 한국 대학 급식 메뉴 문구를 분석하는 조력자입니다.
@@ -157,6 +158,8 @@ def results_to_dataframe(results: list[dict]) -> pd.DataFrame:
 
 
 def main() -> None:
+    repo_env.load_dotenv_from_repo_root()
+
     parser = argparse.ArgumentParser(description="Gemini로 급식 메뉴 알레르기·재료 추정")
     parser.add_argument(
         "-o",
@@ -199,7 +202,7 @@ def main() -> None:
     if not api_key:
         raise SystemExit(
             "환경변수 GEMINI_API_KEY가 없습니다. "
-            "예: export GEMINI_API_KEY='...'"
+            ".env 파일(cp .env.example .env) 또는 export GEMINI_API_KEY='...' 로 설정하세요."
         )
 
     print("사용 모델:", args.model)
