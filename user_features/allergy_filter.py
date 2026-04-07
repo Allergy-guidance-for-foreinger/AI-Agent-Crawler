@@ -196,6 +196,31 @@ def main() -> None:
 
     raw_tokens = [x.strip() for x in args.allergens.split(",")]
     user_set = normalize_user_allergen_tokens(raw_tokens)
+    # normalize_user_allergen_tokens는 매핑 실패 시 원문을 user_set에 넣을 수 있어
+    # (요약의 canonical 라벨과 맞지 않음). raw_tokens·user_set을 아래에서 검증한다.
+    if not any(t for t in raw_tokens):
+        print(
+            "알레르기(--allergens)에 유효한 항목이 없습니다. 빈 입력 또는 쉼표만 있습니다.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    unrecognized: list[str] = []
+    for t in raw_tokens:
+        if not t:
+            unrecognized.append("빈 항목")
+            continue
+        key = t.lower() if t.isascii() else t
+        if not (ALIAS_TO_CANONICAL.get(t) or ALIAS_TO_CANONICAL.get(key)):
+            unrecognized.append(t)
+    if unrecognized:
+        print(
+            "알 수 없는 알레르기 토큰이 있습니다: "
+            f"{', '.join(unrecognized)}. "
+            "normalize_user_allergen_tokens와 allergen_catalog의 표기만 사용할 수 있습니다. "
+            f"지원: {', '.join(list_canonical_choices())}",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
 
     try:
         df = pd.read_csv(args.csv, encoding="utf-8-sig")
