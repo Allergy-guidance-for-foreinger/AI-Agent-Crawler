@@ -232,9 +232,11 @@ python -m uvicorn user_features.live_service:app --host 0.0.0.0 --port 8000
 API:
 
 - `GET /health`: 상태 확인
-- `POST /crawl-and-forward`: 즉시 크롤링 후 `SPRING_MENUS_URL`로 전송
+- `POST /crawl-and-forward`: 즉시 크롤링 + Gemini 메뉴/알레르기 분석 + i18n(영문 등) 생성 후 `SPRING_MENUS_URL`로 전송
 - `POST /analyze-image-and-forward`: multipart 파일(`image`)을 Gemini로 분석 후 `SPRING_IMAGE_ANALYSIS_URL`로 전송
   - 선택 파라미터: `user_id`, `request_id`
+- `POST /identify-image-and-forward`: multipart 파일(`image`)에서 음식 이름만 식별해 `SPRING_IMAGE_IDENTIFY_URL`로 전송
+- `POST /analyze-food-text-and-forward`: Spring이 텍스트 음식명을 넘기면 재료/알레르기 분석 후 `SPRING_TEXT_ANALYSIS_URL`로 전송
 
 서비스가 올라가 있으면 내부 스케줄러가 주 1회 크롤링 전송을 자동 실행합니다.
 
