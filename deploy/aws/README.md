@@ -5,7 +5,6 @@
 ## 1) 서버 준비
 
 - EC2에 코드 배포
-- 브랜치: `feature/live-ingest-and-image-analysis-service`
 - `.env` 준비 (`deploy/aws/.env.live.example` 참고)
 
 예시:
