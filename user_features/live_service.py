@@ -182,7 +182,9 @@ async def analyze_image_and_forward(
 
     mime_type = image.content_type or "image/jpeg"
     try:
-        analysis = analyze_food_image_bytes(CLIENT, CONFIG.gemini_model, image_bytes, mime_type)
+        analysis = await asyncio.to_thread(
+            analyze_food_image_bytes, CLIENT, CONFIG.gemini_model, image_bytes, mime_type
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"이미지 분석 실패: {e}") from e
 
