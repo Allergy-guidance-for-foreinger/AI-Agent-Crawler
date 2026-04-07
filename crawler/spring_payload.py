@@ -30,7 +30,19 @@ def build_menu_ingest_payload(
     """
     when = captured_at or datetime.now(timezone.utc)
     if when.tzinfo is None:
-        when = when.replace(tzinfo=timezone.utc)
+        # naive: 벽시계 값을 UTC로 간주 (로컬 타임존으로 해석하지 않음)
+        when = datetime(
+            when.year,
+            when.month,
+            when.day,
+            when.hour,
+            when.minute,
+            when.second,
+            when.microsecond,
+            tzinfo=timezone.utc,
+        )
+    else:
+        when = when.astimezone(timezone.utc)
 
     restaurants: list[dict[str, Any]] = []
     for place_name, df in menus.items():
