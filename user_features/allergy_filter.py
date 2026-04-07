@@ -84,7 +84,12 @@ def filter_avoid_dataframe(
         raise ValueError("데이터에 '알레르기_요약' 열이 필요합니다 (menu_allergy CSV 등).")
 
     work = df.copy()
-    if today_only and "요일열" in work.columns:
+    if today_only:
+        if "요일열" not in work.columns:
+            raise ValueError(
+                "today_only=True 인데 데이터에 '요일열' 열이 없습니다. "
+                "오늘 요일만 필터하려면 menu_allergy CSV 등에 요일열이 있어야 합니다."
+            )
         prefix = seoul_weekday_char()
         col = work["요일열"].astype(str)
         work = work[col.str.startswith(prefix)]
