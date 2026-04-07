@@ -1,7 +1,6 @@
-# 로컬 비밀·환경 (복사본은 .env.example 참고)
-.env
-.env.local
-.env.*.local
+# 로컬 비밀·환경 — .env, .env.local, .env.dev, .env.test 등 전부 무시
+.env*
+!.env.example
 
 # Python
 __pycache__/
