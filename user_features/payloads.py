@@ -39,7 +39,6 @@ def build_extended_menu_payload(
         base["userAllergensKo"] = sorted(canon)
 
     if analysis_df is not None and user_allergens_raw:
-        canon = normalize_user_allergen_tokens(user_allergens_raw)
         avoid_df = filter_avoid_dataframe(
             analysis_df,
             canon,
