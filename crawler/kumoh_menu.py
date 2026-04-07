@@ -24,12 +24,19 @@ def fetch_html(url: str) -> str:
 def load_menus() -> dict[str, pd.DataFrame]:
     menus: dict[str, pd.DataFrame] = {}
     for name, url in URLS.items():
-        html = fetch_html(url)
-        tables = pd.read_html(StringIO(html))
-        if not tables:
+        try:
+            html = fetch_html(url)
+            try:
+                tables = pd.read_html(StringIO(html))
+            except ValueError:
+                continue
+            if not tables:
+                continue
+            df = tables[0].copy()
+            df.columns = [str(c).strip() for c in df.columns]
+            df = df.replace(r"\s+", " ", regex=True)
+            menus[name] = df
+        except Exception as e:
+            print(f"[{name}] 메뉴 로드 실패: {e}")
             continue
-        df = tables[0].copy()
-        df.columns = [str(c).strip() for c in df.columns]
-        df = df.replace(r"\s+", " ", regex=True)
-        menus[name] = df
     return menus
