@@ -58,10 +58,9 @@ else
 fi
 
 cd "$REPO_DIR"
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+sudo -u "$RUN_USER" python3 -m venv .venv
+sudo -u "$RUN_USER" .venv/bin/pip install --upgrade pip
+sudo -u "$RUN_USER" .venv/bin/pip install -r requirements.txt
 
 SERVICE_FILE="/etc/systemd/system/ai-crawler-live.service"
 cat > "$SERVICE_FILE" <<EOF
