@@ -6,7 +6,7 @@ Gemini API와 Python으로 금오공대 급식표를 수집·분석합니다.
 
 | 폴더 | 설명 |
 |------|------|
-| `crawler/` | 급식표 HTML 크롤링 |
+| `crawler/` | 급식표 HTML 크롤링, Spring Boot 전송(`push_menus`) |
 | `menu_allergy/` | 메뉴 문구 기반 재료·알레르기 추정 (Gemini) |
 | `food_image/` | 음식 이미지 기반 식재료 추정 (Gemini Vision) |
 
@@ -67,6 +67,68 @@ python -m food_image.agent path/to/photo.jpg
 python -m food_image.agent path/to/photo.jpg --ingredients-table
 python -m food_image.agent --help
 ```
+
+### 4. 크롤링 결과를 Spring Boot 서버로 전송
+
+크롤링 직후 같은 JSON 페이로드를 `POST`합니다. URL·토큰은 인자 또는 환경 변수로 줄 수 있습니다.
+
+```bash
+export SPRING_MENUS_URL='http://localhost:8080/api/menus/ingest'
+# 선택: Bearer 토큰
+export SPRING_API_TOKEN='...'
+# 또는 API 키 헤더 (서버에서 X-API-Key 검증 시)
+export SPRING_API_KEY='...'
+
+python -m crawler.push_menus
+```
+
+미리 본문만 확인:
+
+```bash
+python -m crawler.push_menus --dry-run --indent 2
+```
+
+한 줄로 URL만 지정:
+
+```bash
+python -m crawler.push_menus --url http://localhost:8080/api/menus/ingest
+python -m crawler.push_menus --help
+```
+
+**요청 JSON 형식** (서버 DTO와 맞추면 됩니다):
+
+- `source` (string): 출처 URL 등
+- `capturedAt` (string): UTC ISO-8601 수집 시각
+- `restaurants` (array): 식당별
+  - `name`: 식당 이름 (예: `학생식당`)
+  - `columns`: 요일·구분 열 제목 배열
+  - `rows`: 각 행의 셀 문자열 배열 (`columns` 순서와 동일)
+
+**Spring Boot 수신 예시** (경로·검증은 프로젝트에 맞게 수정):
+
+```java
+// build.gradle: implementation 'org.springframework.boot:spring-boot-starter-web'
+
+import org.springframework.web.bind.annotation.*;
+import java.time.Instant;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/menus")
+public class MenuIngestController {
+
+    public record RestaurantMenu(String name, List<String> columns, List<List<String>> rows) {}
+    public record MenuIngestRequest(String source, String capturedAt, List<RestaurantMenu> restaurants) {}
+
+    @PostMapping("/ingest")
+    public void ingest(@RequestBody MenuIngestRequest body) {
+        Instant.parse(body.capturedAt()); // 필요 시 검증
+        // TODO: DB 저장 등
+    }
+}
+```
+
+CORS가 필요하면 `@CrossOrigin` 또는 `WebMvcConfigurer`로 허용 origin을 설정하세요. 다른 경로·필드명을 쓰는 경우 Python 쪽 `crawler/spring_payload.py`의 키를 서버와 동일하게 맞추면 됩니다.
 
 ## 참고
 
