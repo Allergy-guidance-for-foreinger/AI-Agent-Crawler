@@ -101,7 +101,7 @@ def main() -> None:
 
     print("HTTP", res.status_code)
     body = (res.text or "").strip()
-    if body:
+    if not res.ok and body:
         print(body[:8000])
         if len(body) > 8000:
             print("... (응답 잘림)")
