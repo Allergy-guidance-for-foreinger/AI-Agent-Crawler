@@ -13,7 +13,7 @@ import pandas as pd
 
 import repo_env
 from user_features.allergen_catalog import (
-    EXPANSIONS,
+    ALIAS_TO_CANONICAL,
     list_canonical_choices,
     normalize_user_allergen_tokens,
 )
@@ -41,16 +41,30 @@ def detected_labels_from_summary(summary: str | None) -> list[str]:
     return labels
 
 
+def detected_label_to_canonical(label: str) -> str | None:
+    """요약에서 뽑힌 식품 라벨(한 덩어리)을 canonical로만 매핑. 부분 문자열 매칭 없음.
+
+    '콩'→대두, '땅콩'→땅콩처럼 표에 등록된 동의어 **전체 일치**만 인정.
+    """
+    d = label.strip()
+    if not d:
+        return None
+    return ALIAS_TO_CANONICAL.get(d)
+
+
 def matched_user_allergens(user_canonical: set[str], summary: str) -> list[str]:
     """요약문에 나타난 식품 라벨이 사용자 선택 알레르기와 겹치는 canonical 목록."""
-    detected = detected_labels_from_summary(summary)
+    raw_labels = detected_labels_from_summary(summary)
+    detected_canonical: set[str] = set()
+    for d in raw_labels:
+        c = detected_label_to_canonical(d)
+        if c:
+            detected_canonical.add(c)
+
     hit: list[str] = []
     for uc in user_canonical:
-        triggers = {uc} | set(EXPANSIONS.get(uc, frozenset()))
-        for d in detected:
-            if any(t and t in d and not (t == "콩" and "땅콩" in d) for t in triggers):
-                hit.append(uc)
-                break
+        if uc in detected_canonical:
+            hit.append(uc)
     return hit
 
 
