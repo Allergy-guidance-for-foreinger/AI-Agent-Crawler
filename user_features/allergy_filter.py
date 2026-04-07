@@ -48,7 +48,7 @@ def matched_user_allergens(user_canonical: set[str], summary: str) -> list[str]:
     for uc in user_canonical:
         triggers = {uc} | set(EXPANSIONS.get(uc, frozenset()))
         for d in detected:
-            if any(t and t in d for t in triggers):
+            if any(t and t in d and not (t == "콩" and "땅콩" in d) for t in triggers):
                 hit.append(uc)
                 break
     return hit
