@@ -193,7 +193,8 @@ async def analyze_image_and_forward(
         "analysis": analysis,
     }
     try:
-        res = requests.post(
+        res = await asyncio.to_thread(
+            requests.post,
             CONFIG.spring_image_url,
             json=payload,
             headers=_auth_headers(CONFIG.spring_api_token, CONFIG.spring_api_key),
