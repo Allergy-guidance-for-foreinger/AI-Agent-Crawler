@@ -10,6 +10,7 @@ Gemini API와 Python으로 금오공대 급식표를 수집·분석합니다.
 | `menu_allergy/` | 메뉴 문구 기반 재료·알레르기 추정 (Gemini) |
 | `food_image/` | 음식 이미지 기반 식재료 추정 (Gemini Vision) |
 | `user_features/` | 알레르기 필터, 다국어 요약, 확장 Spring 페이로드 |
+| `user_features/live/` | live service 라우터/설정/서비스 로직 분리 모듈 |
 
 ## 빠른 시작
 
