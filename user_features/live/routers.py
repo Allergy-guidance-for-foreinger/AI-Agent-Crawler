@@ -26,6 +26,7 @@ from user_features.live.runtime import (
     RuntimeContext,
 )
 from user_features.live.service_ops import (
+    CrawlSourceUpstreamError,
     analyze_food_text,
     build_daily_meals,
     identify_food_from_image,
@@ -262,14 +263,43 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 cafeteria_name=payload.cafeteriaName,
                 source_url=payload.sourceUrl,
             )
-        except Exception:
+        except RuntimeError as e:
             return v1_error(
-                "PYM_404",
+                "PYM_400",
                 (
-                    "요청 식단을 찾을 수 없습니다. "
+                    "요청 식단 조회 조건이 유효하지 않거나 데이터가 없습니다. "
+                    f"(cafeteriaName={payload.cafeteriaName}, sourceUrl={payload.sourceUrl}, reason={e})"
+                ),
+                status_code=400,
+            )
+        except (CrawlSourceUpstreamError, requests.exceptions.RequestException, OSError) as e:
+            logger.warning(
+                "upstream crawl source unavailable sourceUrl=%s cafeteriaName=%s: %s",
+                payload.sourceUrl,
+                payload.cafeteriaName,
+                e,
+            )
+            return v1_error(
+                "PYM_502",
+                (
+                    "외부 크롤링 소스 조회에 실패했습니다. 잠시 후 다시 시도해주세요. "
                     f"(cafeteriaName={payload.cafeteriaName}, sourceUrl={payload.sourceUrl})"
                 ),
-                status_code=404,
+                status_code=502,
+            )
+        except Exception as e:
+            logger.exception(
+                "unexpected error while loading menu table sourceUrl=%s cafeteriaName=%s",
+                payload.sourceUrl,
+                payload.cafeteriaName,
+            )
+            return v1_error(
+                "PYM_500",
+                (
+                    "요청 식단 조회 중 예상하지 못한 오류가 발생했습니다. "
+                    f"(cafeteriaName={payload.cafeteriaName}, sourceUrl={payload.sourceUrl}, reason={e})"
+                ),
+                status_code=500,
             )
 
         meals = build_daily_meals(

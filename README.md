@@ -499,6 +499,10 @@ public record ApiErrorResponse(
 - `WEEKLY_MENU_BATCH_SIZE`, `WEEKLY_MENU_SLEEP_SECONDS`
 - `SERVICE_TIMEZONE` (기본 `Asia/Seoul`)
 - `ENABLE_DIRECT_IMAGE_ANALYSIS` (기본 `false`)
+- `CRAWL_SOURCE_ALLOWLIST`
+  - `service_ops.py`의 `load_menu_table_for_source()`에서 `sourceUrl` 허용 host를 제한하는 SSRF 방어 설정
+  - 형식: 쉼표(,)로 구분한 hostname 목록 (예: `CRAWL_SOURCE_ALLOWLIST=www.kumoh.ac.kr,kumoh.ac.kr`)
+  - 기본값(미설정): 코드 기본 allowlist(`www.kumoh.ac.kr`, `kumoh.ac.kr`)만 허용
 
 ## Spring Boot DTO 가이드
 

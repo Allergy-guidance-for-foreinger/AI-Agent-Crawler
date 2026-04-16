@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import socket
@@ -33,6 +34,11 @@ from user_features.live.runtime import (
 
 DEFAULT_SOURCE_ALLOWLIST = {"www.kumoh.ac.kr", "kumoh.ac.kr"}
 MEAL_TYPE_ORDER = {"BREAKFAST": 0, "LUNCH": 1, "DINNER": 2}
+logger = logging.getLogger(__name__)
+
+
+class CrawlSourceUpstreamError(Exception):
+    """외부 sourceUrl fetch/파싱 실패가 최종적으로 해소되지 않은 경우."""
 
 
 def auth_headers(token: str | None, api_key: str | None) -> dict[str, str]:
@@ -289,6 +295,7 @@ def load_menu_table_for_source(
 ) -> pd.DataFrame:
     """sourceUrl 우선 파싱, 실패 시 기존 식당명 로더로 폴백."""
     _validate_source_url(source_url)
+    source_fetch_error: BaseException | None = None
 
     try:
         response = requests.get(source_url, timeout=15, allow_redirects=False)
@@ -309,12 +316,22 @@ def load_menu_table_for_source(
         ValueError,
         UnicodeError,
         OSError,
-    ):
-        pass
+    ) as e:
+        source_fetch_error = e
+        logger.warning(
+            "sourceUrl fetch/parse failed (source_url=%s): %s",
+            source_url,
+            e,
+            exc_info=True,
+        )
 
     fallback_menus = load_menus()
     table = fallback_menus.get(cafeteria_name)
     if table is None:
+        if source_fetch_error is not None:
+            raise CrawlSourceUpstreamError(
+                "sourceUrl fetch/parse failed and fallback cafeteria data was unavailable."
+            ) from source_fetch_error
         raise RuntimeError(
             "sourceUrl에서 식단표 파싱에 실패했고, 등록된 식당명 기반 폴백도 실패했습니다."
         )
