@@ -32,6 +32,7 @@ from user_features.live.runtime import (
 )
 
 DEFAULT_SOURCE_ALLOWLIST = {"www.kumoh.ac.kr", "kumoh.ac.kr"}
+MEAL_TYPE_ORDER = {"BREAKFAST": 0, "LUNCH": 1, "DINNER": 2}
 
 
 def auth_headers(token: str | None, api_key: str | None) -> dict[str, str]:
@@ -272,7 +273,12 @@ def build_daily_meals(
                     "menus": menus,
                 }
             )
-    meals.sort(key=lambda item: (item["mealDate"], item["mealType"]))
+    meals.sort(
+        key=lambda item: (
+            item["mealDate"],
+            MEAL_TYPE_ORDER.get(str(item["mealType"]), 99),
+        )
+    )
     return meals
 
 
@@ -399,6 +405,8 @@ Input text:
     if not raw:
         raise RuntimeError("모델 번역 응답이 비어 있습니다.")
     parsed = json.loads(raw)
+    if not isinstance(parsed, dict):
+        raise RuntimeError("모델 번역 응답 JSON이 객체 형태가 아닙니다.")
     translated = parsed.get("translatedText")
     if not isinstance(translated, str) or not translated.strip():
         raise RuntimeError("모델 번역 응답 형식이 올바르지 않습니다.")
