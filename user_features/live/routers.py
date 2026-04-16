@@ -41,6 +41,7 @@ from user_features.live.service_ops import (
 
 logger = logging.getLogger(__name__)
 security = HTTPBearer(auto_error=False)
+MAX_CONCURRENT_AI_TASKS = 4
 
 
 def _validate_image_upload_or_raise(image: UploadFile, image_bytes: bytes, mime_type: str) -> None:
@@ -297,16 +298,18 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         if client is None:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
 
-        results: list[dict[str, Any]] = []
-        for target in payload.menus:
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_AI_TASKS)
+
+        async def _analyze_single_menu(target) -> dict[str, Any]:
             analyzed_at = datetime.now(ZoneInfo(cfg.timezone_name)).isoformat(timespec="seconds")
             try:
-                analysis = await asyncio.to_thread(
-                    analyze_food_text,
-                    client,
-                    cfg.gemini_model,
-                    target.menuName,
-                )
+                async with semaphore:
+                    analysis = await asyncio.to_thread(
+                        analyze_food_text,
+                        client,
+                        cfg.gemini_model,
+                        target.menuName,
+                    )
                 ingredient_codes: list[dict[str, Any]] = []
                 dedup: set[str] = set()
 
@@ -331,31 +334,29 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                     dedup.add(code)
                     ingredient_codes.append({"ingredientCode": code, "confidence": 0.8})
 
-                results.append(
-                    {
-                        "menuId": target.menuId,
-                        "menuName": target.menuName,
-                        "status": "COMPLETED",
-                        "reason": None,
-                        "modelName": "gemini",
-                        "modelVersion": cfg.gemini_model,
-                        "analyzedAt": analyzed_at,
-                        "ingredients": ingredient_codes,
-                    }
-                )
+                return {
+                    "menuId": target.menuId,
+                    "menuName": target.menuName,
+                    "status": "COMPLETED",
+                    "reason": None,
+                    "modelName": "gemini",
+                    "modelVersion": cfg.gemini_model,
+                    "analyzedAt": analyzed_at,
+                    "ingredients": ingredient_codes,
+                }
             except Exception as e:
-                results.append(
-                    {
-                        "menuId": target.menuId,
-                        "menuName": target.menuName,
-                        "status": "FAILED",
-                        "reason": str(e)[:300],
-                        "modelName": "gemini",
-                        "modelVersion": cfg.gemini_model,
-                        "analyzedAt": analyzed_at,
-                        "ingredients": [],
-                    }
-                )
+                return {
+                    "menuId": target.menuId,
+                    "menuName": target.menuName,
+                    "status": "FAILED",
+                    "reason": str(e)[:300],
+                    "modelName": "gemini",
+                    "modelVersion": cfg.gemini_model,
+                    "analyzedAt": analyzed_at,
+                    "ingredients": [],
+                }
+
+        results = await asyncio.gather(*[_analyze_single_menu(target) for target in payload.menus])
 
         return v1_success({"results": results})
 
@@ -368,40 +369,56 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         if client is None:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
 
-        results: list[dict[str, Any]] = []
-        for menu in payload.menus:
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT_AI_TASKS)
+
+        async def _translate_single_menu(menu) -> dict[str, Any]:
             translations: list[dict[str, str]] = []
             translation_errors: list[dict[str, str]] = []
-            for lang in payload.targetLanguages:
+
+            async def _translate_one_language(lang: str) -> tuple[str, str | None, str | None]:
                 lang_code = lang.strip()
                 if not lang_code:
-                    continue
+                    return "", None, None
                 try:
-                    translated = await asyncio.to_thread(
-                        translate_text_with_gemini,
-                        client,
-                        cfg.gemini_model,
-                        "ko",
-                        lang_code,
-                        menu.menuName,
-                    )
-                    translations.append({"langCode": lang_code, "translatedName": translated})
+                    async with semaphore:
+                        translated = await asyncio.to_thread(
+                            translate_text_with_gemini,
+                            client,
+                            cfg.gemini_model,
+                            "ko",
+                            lang_code,
+                            menu.menuName,
+                        )
+                    return lang_code, translated, None
                 except Exception as e:
+                    return lang_code, None, str(e)
+
+            results_by_lang = await asyncio.gather(
+                *[_translate_one_language(lang) for lang in payload.targetLanguages]
+            )
+
+            for lang_code, translated, error_reason in results_by_lang:
+                if not lang_code:
+                    continue
+                if translated is not None:
+                    translations.append({"langCode": lang_code, "translatedName": translated})
+                    continue
+                if error_reason is not None:
                     logger.warning(
                         "translation failed menuId=%s lang=%s: %s",
                         menu.menuId,
                         lang_code,
-                        e,
+                        error_reason,
                     )
-                    translation_errors.append({"langCode": lang_code, "reason": str(e)})
-            results.append(
-                {
-                    "menuId": menu.menuId,
-                    "sourceName": menu.menuName,
-                    "translations": translations,
-                    "translationErrors": translation_errors,
-                }
-            )
+                    translation_errors.append({"langCode": lang_code, "reason": error_reason})
+            return {
+                "menuId": menu.menuId,
+                "sourceName": menu.menuName,
+                "translations": translations,
+                "translationErrors": translation_errors,
+            }
+
+        results = await asyncio.gather(*[_translate_single_menu(menu) for menu in payload.menus])
 
         return v1_success({"results": results})
 
