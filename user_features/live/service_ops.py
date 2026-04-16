@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import socket
+from ipaddress import ip_address
 from datetime import date, datetime, timedelta
 from io import StringIO
 from typing import Any
+from urllib.parse import urlparse
 
 import pandas as pd
 import requests
@@ -26,6 +30,8 @@ from user_features.live.runtime import (
     CANONICAL_TO_INGREDIENT_CODE,
     ServiceConfig,
 )
+
+DEFAULT_SOURCE_ALLOWLIST = {"www.kumoh.ac.kr", "kumoh.ac.kr"}
 
 
 def auth_headers(token: str | None, api_key: str | None) -> dict[str, str]:
@@ -276,8 +282,13 @@ def load_menu_table_for_source(
     source_url: str,
 ) -> pd.DataFrame:
     """sourceUrl 우선 파싱, 실패 시 기존 식당명 로더로 폴백."""
+    _validate_source_url(source_url)
+
     try:
-        response = requests.get(source_url, timeout=15)
+        response = requests.get(source_url, timeout=15, allow_redirects=False)
+        # Redirect를 허용하면 검증되지 않은 내부 주소로 우회될 수 있다.
+        if 300 <= response.status_code < 400:
+            raise requests.exceptions.RequestException("redirect is not allowed for source_url")
         response.raise_for_status()
         response.encoding = "utf-8"
         tables = pd.read_html(StringIO(response.text))
@@ -302,6 +313,44 @@ def load_menu_table_for_source(
             "sourceUrl에서 식단표 파싱에 실패했고, 등록된 식당명 기반 폴백도 실패했습니다."
         )
     return table
+
+
+def _validate_source_url(source_url: str) -> None:
+    parsed = urlparse(source_url)
+    if parsed.scheme.lower() != "https":
+        raise RuntimeError("sourceUrl은 https만 허용됩니다.")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise RuntimeError("sourceUrl hostname이 비어 있습니다.")
+
+    raw_allowlist = os.environ.get("CRAWL_SOURCE_ALLOWLIST", "").strip()
+    if raw_allowlist:
+        allowlist = {host.strip().lower() for host in raw_allowlist.split(",") if host.strip()}
+    else:
+        allowlist = set(DEFAULT_SOURCE_ALLOWLIST)
+
+    normalized_host = hostname.lower()
+    if normalized_host not in allowlist:
+        raise RuntimeError(f"허용되지 않은 sourceUrl host입니다: {hostname}")
+
+    try:
+        infos = socket.getaddrinfo(hostname, parsed.port or 443, type=socket.SOCK_STREAM)
+    except OSError as e:
+        raise RuntimeError(f"sourceUrl DNS 조회 실패: {e}") from e
+
+    for info in infos:
+        ip_text = info[4][0]
+        ip_obj = ip_address(ip_text)
+        if (
+            ip_obj.is_private
+            or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
+            or ip_obj.is_reserved
+            or ip_obj.is_unspecified
+        ):
+            raise RuntimeError("sourceUrl이 사설/내부/예약 IP로 해석되어 차단되었습니다.")
 
 
 def map_ingredient_code(token: str) -> str | None:
