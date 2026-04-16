@@ -65,7 +65,7 @@ curl http://localhost:8000/health
 - Base URL: `/api/v1`
 - 공통 헤더
   - `Content-Type: application/json` (파일 업로드 API 제외)
-  - `Accept-Language: ko | en | zh-CN | vi | ja`
+  - `Accept-Language: ko | en | zh-CN | vi | ja` (locale 변형 허용: `en-US`, `ko-KR` 등)
 - 성공 응답 형식
 ```json
 {
