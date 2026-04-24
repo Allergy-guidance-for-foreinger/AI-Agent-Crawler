@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 import requests
 from google import genai
 
+from user_features.live.entities import MenuCrawlQuery
 from user_features.live.service_ops import (
     analyze_food_text,
     build_daily_meals,
@@ -22,10 +24,20 @@ from user_features.live.service_ops import (
 class CrawlRepository:
     """크롤링/메뉴 데이터 접근 Repository."""
 
-    def load_menu_table_for_source(self, cafeteria_name: str, source_url: str):
-        return load_menu_table_for_source(cafeteria_name=cafeteria_name, source_url=source_url)
+    def load_menu_table_for_source(self, query: MenuCrawlQuery):
+        return load_menu_table_for_source(
+            cafeteria_name=query.cafeteria_name,
+            source_url=query.source_url,
+        )
 
-    def build_daily_meals(self, *, cafeteria_name: str, table: Any, start, end) -> list[dict[str, Any]]:
+    def build_daily_meals(
+        self,
+        *,
+        cafeteria_name: str,
+        table: Any,
+        start: date,
+        end: date,
+    ) -> list[dict[str, Any]]:
         return build_daily_meals(cafeteria_name=cafeteria_name, table=table, start=start, end=end)
 
     def run_weekly_crawl_once(self, cfg, client: genai.Client | None) -> dict[str, Any]:

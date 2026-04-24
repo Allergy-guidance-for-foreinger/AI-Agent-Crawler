@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 import requests
@@ -13,21 +14,34 @@ from user_features.live.runtime import RuntimeContext
 class LiveService:
     """라우터에서 호출할 비즈니스 로직 진입점."""
 
-    def __init__(self, ctx: RuntimeContext):
+    def __init__(
+        self,
+        ctx: RuntimeContext,
+        crawl_repo: CrawlRepository | None = None,
+        ai_repo: AIRepository | None = None,
+        spring_repo: SpringRepository | None = None,
+    ):
         self.cfg = ctx.config
         self.client = ctx.client
-        self.crawl_repo = CrawlRepository()
-        self.ai_repo = AIRepository()
-        self.spring_repo = SpringRepository()
+        self.crawl_repo = crawl_repo or CrawlRepository()
+        self.ai_repo = ai_repo or AIRepository()
+        self.spring_repo = spring_repo or SpringRepository()
 
     def run_weekly_crawl_once(self) -> dict[str, Any]:
         return self.crawl_repo.run_weekly_crawl_once(self.cfg, self.client)
 
     def load_menu_table_for_source(self, cafeteria_name: str, source_url: str):
         query = MenuCrawlQuery(cafeteria_name=cafeteria_name, source_url=source_url)
-        return self.crawl_repo.load_menu_table_for_source(query.cafeteria_name, query.source_url)
+        return self.crawl_repo.load_menu_table_for_source(query)
 
-    def build_daily_meals(self, *, cafeteria_name: str, table: Any, start, end) -> list[dict[str, Any]]:
+    def build_daily_meals(
+        self,
+        *,
+        cafeteria_name: str,
+        table: Any,
+        start: date,
+        end: date,
+    ) -> list[dict[str, Any]]:
         return self.crawl_repo.build_daily_meals(
             cafeteria_name=cafeteria_name,
             table=table,

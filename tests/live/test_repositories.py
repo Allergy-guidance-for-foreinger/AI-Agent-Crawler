@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from user_features.live.entities import MenuCrawlQuery
 from user_features.live.repositories import AIRepository, CrawlRepository, SpringRepository
 
 
@@ -22,8 +23,10 @@ def test_crawl_repository_load_menu_table_for_source_delegates(monkeypatch):
     )
 
     out = repo.load_menu_table_for_source(
-        "학생식당",
-        "https://www.kumoh.ac.kr/ko/restaurant01.do",
+        MenuCrawlQuery(
+            cafeteria_name="학생식당",
+            source_url="https://www.kumoh.ac.kr/ko/restaurant01.do",
+        )
     )
     assert out == {"ok": True}
 

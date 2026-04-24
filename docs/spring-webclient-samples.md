@@ -160,6 +160,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
@@ -168,43 +169,46 @@ public class PythonApiClient {
 
     private final WebClient pythonWebClient;
 
-    public MealsCrawlResponse crawlMeals(MealsCrawlRequest request) {
+    public Mono<MealsCrawlResponse> crawlMeals(MealsCrawlRequest request) {
         var type = new ParameterizedTypeReference<ApiSuccessResponse<MealsCrawlResponse>>() {};
-        return pythonWebClient.post()
+        return pythonWebClient
+            .post()
             .uri("/api/v1/python/meals/crawl")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
             .bodyToMono(type)
-            .map(ApiSuccessResponse::data)
-            .block();
+            .map(ApiSuccessResponse::data);
     }
 
-    public MenuAnalyzeResponse analyzeMenus(MenuAnalyzeRequest request) {
+    public Mono<MenuAnalyzeResponse> analyzeMenus(MenuAnalyzeRequest request) {
         var type = new ParameterizedTypeReference<ApiSuccessResponse<MenuAnalyzeResponse>>() {};
-        return pythonWebClient.post()
+        return pythonWebClient
+            .post()
             .uri("/api/v1/python/menus/analyze")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
             .bodyToMono(type)
-            .map(ApiSuccessResponse::data)
-            .block();
+            .map(ApiSuccessResponse::data);
     }
 
-    public MenuTranslateResponse translateMenus(MenuTranslateRequest request) {
+    public Mono<MenuTranslateResponse> translateMenus(MenuTranslateRequest request) {
         var type = new ParameterizedTypeReference<ApiSuccessResponse<MenuTranslateResponse>>() {};
-        return pythonWebClient.post()
+        return pythonWebClient
+            .post()
             .uri("/api/v1/python/menus/translate")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(request)
             .retrieve()
             .bodyToMono(type)
-            .map(ApiSuccessResponse::data)
-            .block();
+            .map(ApiSuccessResponse::data);
     }
 }
 ```
+
+> 참고: WebFlux 환경에서는 `.block()` 사용을 피하는 것이 좋습니다.  
+> 동기 호출이 필요한 경우 별도 Scheduler/경계 계층에서 제한적으로 사용하세요.
 
 ---
 
