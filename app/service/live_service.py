@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import requests
-from user_features.live.entities import FoodImageQuery, FoodTextQuery, MenuCrawlQuery, SpringForwardPayload
-from user_features.live.repositories import AIRepository, CrawlRepository, SpringRepository
-from user_features.live.runtime import RuntimeContext
+from app.config.runtime import RuntimeContext
+from app.domain.entities import FoodImageQuery, FoodTextQuery, MenuCrawlQuery, SpringForwardPayload
+from app.repository.ai_repository import AIRepository
+from app.repository.crawl_repository import CrawlRepository
+from app.repository.spring_repository import SpringRepository
 
 logger = logging.getLogger(__name__)
 
@@ -94,14 +95,6 @@ class LiveService:
             api_key=self.cfg.spring_api_key,
         )
 
-    @property
-    def weekly_model(self) -> str:
-        return self.cfg.weekly_menu_model
-
-    @property
-    def client_configured(self) -> bool:
-        return self.client is not None
-
     async def analyze_menus(
         self,
         menus: list[Any],
@@ -114,13 +107,9 @@ class LiveService:
             analyzed_at = datetime.now(ZoneInfo(self.cfg.timezone_name)).isoformat(timespec="seconds")
             try:
                 async with semaphore:
-                    analysis = await asyncio.to_thread(
-                        self.analyze_food_text,
-                        target.menuName,
-                    )
+                    analysis = await asyncio.to_thread(self.analyze_food_text, target.menuName)
                 ingredient_codes: list[dict[str, Any]] = []
                 dedup: set[str] = set()
-
                 for idx, ingredient in enumerate(analysis.get("ingredientsKo") or []):
                     code = self.map_ingredient_code(str(ingredient).strip())
                     if not code or code in dedup:
@@ -132,7 +121,6 @@ class LiveService:
                             "confidence": round(max(0.5, 0.95 - (idx * 0.07)), 2),
                         }
                     )
-
                 for allergen in analysis.get("allergensKo") or []:
                     if not isinstance(allergen, dict):
                         continue
@@ -141,7 +129,6 @@ class LiveService:
                         continue
                     dedup.add(code)
                     ingredient_codes.append({"ingredientCode": code, "confidence": 0.8})
-
                 return {
                     "menuId": target.menuId,
                     "menuName": target.menuName,
@@ -198,7 +185,6 @@ class LiveService:
             results_by_lang = await asyncio.gather(
                 *[_translate_one_language(lang) for lang in target_languages]
             )
-
             for lang_code, translated, error_reason in results_by_lang:
                 if not lang_code:
                     continue
@@ -206,14 +192,8 @@ class LiveService:
                     translations.append({"langCode": lang_code, "translatedName": translated})
                     continue
                 if error_reason is not None:
-                    logger.warning(
-                        "translation failed menuId=%s lang=%s: %s",
-                        menu.menuId,
-                        lang_code,
-                        error_reason,
-                    )
+                    logger.warning("translation failed menuId=%s lang=%s: %s", menu.menuId, lang_code, error_reason)
                     translation_errors.append({"langCode": lang_code, "reason": error_reason})
-
             return {
                 "menuId": menu.menuId,
                 "sourceName": menu.menuName,

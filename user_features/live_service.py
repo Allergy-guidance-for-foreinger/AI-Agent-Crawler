@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 import repo_env
-from app.bootstrap.app_factory import create_app
-from app.bootstrap.runtime import load_runtime_context
+from app.config.app_factory import create_app
+from app.config.runtime import load_runtime_context
 
 # .env 로딩은 서비스 시작 시 단 한 번 실행합니다.
 repo_env.load_dotenv_from_repo_root()

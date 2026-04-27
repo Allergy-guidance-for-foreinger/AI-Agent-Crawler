@@ -75,20 +75,15 @@ def load_config() -> ServiceConfig:
     weekday_text = os.environ.get("WEEKLY_CRAWL_DAY", "mon").strip().lower()
     if weekday_text not in WEEKDAY_TO_INDEX:
         raise RuntimeError("WEEKLY_CRAWL_DAY must be one of mon,tue,wed,thu,fri,sat,sun")
-
     raw_hour = os.environ.get("WEEKLY_CRAWL_HOUR", "6")
     raw_minute = os.environ.get("WEEKLY_CRAWL_MINUTE", "0")
     try:
         hour = int(raw_hour)
         minute = int(raw_minute)
     except ValueError as e:
-        raise RuntimeError(
-            "WEEKLY_CRAWL_HOUR/WEEKLY_CRAWL_MINUTE must be integers "
-            "(hour: 0..23, minute: 0..59)"
-        ) from e
+        raise RuntimeError("WEEKLY_CRAWL_HOUR/WEEKLY_CRAWL_MINUTE must be integers (hour: 0..23, minute: 0..59)") from e
     if not (0 <= hour <= 23 and 0 <= minute <= 59):
         raise RuntimeError("WEEKLY_CRAWL_HOUR/MINUTE out of range")
-
     raw_batch_size = os.environ.get("WEEKLY_MENU_BATCH_SIZE", "4")
     raw_sleep_seconds = os.environ.get("WEEKLY_MENU_SLEEP_SECONDS", "21.0")
     try:
@@ -97,24 +92,20 @@ def load_config() -> ServiceConfig:
         raise RuntimeError("WEEKLY_MENU_BATCH_SIZE must be an integer >= 1") from e
     if weekly_batch_size < 1:
         raise RuntimeError("WEEKLY_MENU_BATCH_SIZE must be >= 1")
-
     try:
         weekly_sleep_seconds = float(raw_sleep_seconds)
     except ValueError as e:
         raise RuntimeError("WEEKLY_MENU_SLEEP_SECONDS must be a float >= 0") from e
     if weekly_sleep_seconds < 0:
         raise RuntimeError("WEEKLY_MENU_SLEEP_SECONDS must be >= 0")
-
     timezone_name = os.environ.get("SERVICE_TIMEZONE", "Asia/Seoul").strip() or "Asia/Seoul"
     try:
         ZoneInfo(timezone_name)
     except ZoneInfoNotFoundError as e:
         raise RuntimeError(f"SERVICE_TIMEZONE is invalid: {timezone_name}") from e
-
     enable_direct_image_analysis = (
         os.environ.get("ENABLE_DIRECT_IMAGE_ANALYSIS", "false").strip().lower() == "true"
     )
-
     return ServiceConfig(
         spring_menus_url=os.environ.get("SPRING_MENUS_URL", "").strip() or None,
         spring_image_analysis_url=os.environ.get("SPRING_IMAGE_ANALYSIS_URL", "").strip() or None,

@@ -13,16 +13,14 @@ from fastapi import FastAPI, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 
-from user_features.live.routers import create_legacy_router, create_v1_router
-from user_features.live.runtime import API_V1_PREFIX, RuntimeContext
-from user_features.live.service_ops import next_run, run_weekly_crawl_once, v1_error
+from app.config.runtime import API_V1_PREFIX, RuntimeContext
+from app.controller.live_router import create_legacy_router, create_v1_router
+from app.util.service_ops import next_run, run_weekly_crawl_once, v1_error
 
 logger = logging.getLogger(__name__)
 
 
 def create_app(ctx: RuntimeContext) -> FastAPI:
-    """애플리케이션 인스턴스를 조립해서 반환한다."""
-
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         async def _weekly_loop() -> None:
@@ -40,7 +38,6 @@ def create_app(ctx: RuntimeContext) -> FastAPI:
                     result = await asyncio.to_thread(run_weekly_crawl_once, ctx.config, ctx.client)
                     logger.info("weekly crawl forwarding succeeded: %s", result)
                 except Exception:
-                    # 실패해도 프로세스는 유지하고 다음 주기에 다시 시도한다.
                     logger.exception("weekly crawl forwarding failed")
 
         app.state.weekly_task = asyncio.create_task(_weekly_loop())
