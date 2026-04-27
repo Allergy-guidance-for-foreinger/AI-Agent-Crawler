@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from user_features.live.entities import MenuCrawlQuery
-from user_features.live.repositories import AIRepository, CrawlRepository, SpringRepository
+from app.domain.entities import MenuCrawlQuery
+from app.repository.ai_repository import AIRepository
+from app.repository.crawl_repository import CrawlRepository
+from app.repository.spring_repository import SpringRepository
 
 
 def test_ai_repository_map_ingredient_code_returns_known_code():
@@ -18,7 +20,7 @@ def test_crawl_repository_load_menu_table_for_source_delegates(monkeypatch):
         return {"ok": True}
 
     monkeypatch.setattr(
-        "user_features.live.repositories.load_menu_table_for_source",
+        "app.repository.crawl_repository.load_menu_table_for_source",
         fake_loader,
     )
 
@@ -45,7 +47,7 @@ def test_spring_repository_post_json_delegates(monkeypatch):
         return DummyResponse()
 
     monkeypatch.setattr(
-        "user_features.live.repositories.post_json",
+        "app.repository.spring_repository.post_json",
         fake_post_json,
     )
 

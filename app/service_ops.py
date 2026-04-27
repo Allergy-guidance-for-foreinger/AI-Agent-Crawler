@@ -7,9 +7,9 @@ import logging
 import os
 import re
 import socket
-from ipaddress import ip_address
 from datetime import date, datetime, timedelta
 from io import StringIO
+from ipaddress import ip_address
 from typing import Any
 from urllib.parse import urlparse
 
@@ -20,17 +20,13 @@ from google import genai
 from google.genai import types
 from pandas.errors import ParserError
 
-from crawler.kumoh_menu import load_menus
-from crawler.push_menus import post_menu_ingest
-from menu_allergy.agent import analyze_menus_with_gemini, iter_menu_entries, results_to_dataframe
+from app.config.runtime import ALLOWED_ACCEPT_LANGUAGES, CANONICAL_TO_INGREDIENT_CODE, ServiceConfig
+from app.domain.allergy.agent import analyze_menus_with_gemini, iter_menu_entries, results_to_dataframe
+from app.domain.crawler.kumoh_menu import load_menus
+from app.domain.crawler.push_menus import post_menu_ingest
 from user_features.allergen_catalog import ALIAS_TO_CANONICAL
 from user_features.i18n_summary import summarize_for_locale
 from user_features.payloads import build_extended_menu_payload
-from user_features.live.runtime import (
-    ALLOWED_ACCEPT_LANGUAGES,
-    CANONICAL_TO_INGREDIENT_CODE,
-    ServiceConfig,
-)
 
 DEFAULT_SOURCE_ALLOWLIST = {"www.kumoh.ac.kr", "kumoh.ac.kr"}
 MEAL_TYPE_ORDER = {"BREAKFAST": 0, "LUNCH": 1, "DINNER": 2}
@@ -101,7 +97,7 @@ def run_weekly_crawl_once(cfg: ServiceConfig, client: genai.Client | None) -> di
 
     return {
         "status": "ok",
-        "restaurants": len(payload.get("restaurants", [])),
+        "restaurants": len(payload.get("data", {}).get("restaurants", [])),
         "analysisRows": len(analysis_df),
         "i18nLocale": cfg.i18n_locale,
     }
@@ -169,13 +165,7 @@ def identify_food_from_image(
     return parsed
 
 
-def post_json(
-    *,
-    url: str,
-    payload: dict[str, Any],
-    token: str | None,
-    api_key: str | None,
-) -> requests.Response:
+def post_json(*, url: str, payload: dict[str, Any], token: str | None, api_key: str | None) -> requests.Response:
     return requests.post(
         url,
         json=payload,
@@ -251,13 +241,7 @@ def extract_date_from_column(column_name: str, start: date, end: date) -> date |
     return None
 
 
-def build_daily_meals(
-    *,
-    cafeteria_name: str,
-    table: Any,
-    start: date,
-    end: date,
-) -> list[dict[str, Any]]:
+def build_daily_meals(*, cafeteria_name: str, table: Any, start: date, end: date) -> list[dict[str, Any]]:
     meals: list[dict[str, Any]] = []
     for column in table.columns:
         meal_date = extract_date_from_column(str(column), start, end)
@@ -303,18 +287,12 @@ def build_daily_meals(
     return meals
 
 
-def load_menu_table_for_source(
-    *,
-    cafeteria_name: str,
-    source_url: str,
-) -> pd.DataFrame:
-    """sourceUrl 우선 파싱, 실패 시 기존 식당명 로더로 폴백."""
+def load_menu_table_for_source(*, cafeteria_name: str, source_url: str) -> pd.DataFrame:
     _validate_source_url(source_url)
     source_fetch_error: BaseException | None = None
 
     try:
         response = requests.get(source_url, timeout=15, allow_redirects=False)
-        # Redirect를 허용하면 검증되지 않은 내부 주소로 우회될 수 있다.
         if 300 <= response.status_code < 400:
             raise requests.exceptions.RequestException("redirect is not allowed for source_url")
         response.raise_for_status()
@@ -357,26 +335,21 @@ def _validate_source_url(source_url: str) -> None:
     parsed = urlparse(source_url)
     if parsed.scheme.lower() != "https":
         raise RuntimeError("sourceUrl은 https만 허용됩니다.")
-
     hostname = parsed.hostname
     if not hostname:
         raise RuntimeError("sourceUrl hostname이 비어 있습니다.")
-
     raw_allowlist = os.environ.get("CRAWL_SOURCE_ALLOWLIST", "").strip()
     if raw_allowlist:
         allowlist = {host.strip().lower() for host in raw_allowlist.split(",") if host.strip()}
     else:
         allowlist = set(DEFAULT_SOURCE_ALLOWLIST)
-
     normalized_host = hostname.lower()
     if normalized_host not in allowlist:
         raise RuntimeError(f"허용되지 않은 sourceUrl host입니다: {hostname}")
-
     try:
         infos = socket.getaddrinfo(hostname, parsed.port or 443, type=socket.SOCK_STREAM)
     except OSError as e:
         raise RuntimeError(f"sourceUrl DNS 조회 실패: {e}") from e
-
     for info in infos:
         ip_text = info[4][0]
         ip_obj = ip_address(ip_text)
@@ -395,11 +368,9 @@ def map_ingredient_code(token: str) -> str | None:
     normalized = token.strip()
     if not normalized:
         return None
-
     direct = CANONICAL_TO_INGREDIENT_CODE.get(normalized)
     if direct:
         return direct
-
     alias_key = normalized.lower() if normalized.isascii() else normalized
     canonical = ALIAS_TO_CANONICAL.get(normalized) or ALIAS_TO_CANONICAL.get(alias_key)
     if canonical:
