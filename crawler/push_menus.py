@@ -12,7 +12,10 @@ import requests
 
 import repo_env
 from crawler.kumoh_menu import load_menus
-from crawler.spring_payload import build_menu_ingest_payload
+from crawler.spring_payload import (
+    build_menu_ingest_payload,
+    build_menu_ingest_swagger_payload,
+)
 
 
 def post_menu_ingest(
@@ -64,6 +67,11 @@ def main() -> None:
         default="https://www.kumoh.ac.kr",
         help="페이로드 source 필드",
     )
+    parser.add_argument(
+        "--legacy-format",
+        action="store_true",
+        help="기존 전송 포맷(source/capturedAt/restaurants) 사용",
+    )
     args = parser.parse_args()
 
     menus = load_menus()
@@ -71,7 +79,10 @@ def main() -> None:
         print("크롤링 결과가 비었습니다.", file=sys.stderr)
         raise SystemExit(1)
 
-    payload = build_menu_ingest_payload(menus, source=args.source)
+    if args.legacy_format:
+        payload = build_menu_ingest_payload(menus, source=args.source)
+    else:
+        payload = build_menu_ingest_swagger_payload(menus, source=args.source)
 
     if args.dry_run:
         json.dump(payload, sys.stdout, ensure_ascii=False, indent=args.indent)

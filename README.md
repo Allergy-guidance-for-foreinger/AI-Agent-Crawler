@@ -6,11 +6,13 @@ Gemini API와 Python으로 금오공대 급식표를 수집·분석합니다.
 
 | 폴더 | 설명 |
 |------|------|
+| `app/` | 계층형 애플리케이션 코드 (`controllers/services/repositories/domain/dto/bootstrap`) |
+| `scripts/` | 실행용 CLI 엔트리 모음 (`push_menus`, `push_extended`, `crawl_menus` 등) |
 | `crawler/` | 급식표 HTML 크롤링, Spring Boot 전송(`push_menus`) |
 | `menu_allergy/` | 메뉴 문구 기반 재료·알레르기 추정 (Gemini) |
 | `food_image/` | 음식 이미지 기반 식재료 추정 (Gemini Vision) |
-| `user_features/` | 알레르기 필터, 다국어 요약, 확장 Spring 페이로드 |
-| `user_features/live/` | live service 라우터/설정/서비스 로직 분리 모듈 |
+| `user_features/` | 알레르기 필터, 다국어 요약, 확장 Spring 페이로드 (기존 경로 호환 유지) |
+| `user_features/live/` | 기존 경로 호환 모듈 및 live 세부 구현 |
 
 ## 빠른 시작
 
@@ -54,9 +56,20 @@ SPRING_TEXT_ANALYSIS_URL=http://localhost:8080/api/food-analysis/ingest
 python3 -m uvicorn user_features.live_service:app --host 0.0.0.0 --port 8000
 ```
 
+신규 구조 기준 핵심 엔트리:
+- 앱 조립: `app/bootstrap/app_factory.py`
+- 런타임 설정: `app/bootstrap/runtime.py`
+- 라우터 진입: `app/controllers/live_router.py`
+
 ### 2) 상태 확인
 ```bash
 curl http://localhost:8000/health
+```
+
+Swagger/OpenAPI:
+```bash
+open http://localhost:8000/docs
+curl http://localhost:8000/openapi.json
 ```
 
 ### 3) Python API 명세 (`/api/v1`)
@@ -539,23 +552,26 @@ public record ApiErrorResponse(
 ### 3) 주간 메뉴 통합 전송 DTO (`SPRING_MENUS_URL`)
 ```json
 {
-  "source": "https://www.kumoh.ac.kr",
-  "capturedAt": "2026-04-07T03:00:00+00:00",
-  "restaurants": [
-    {"name": "학생식당", "columns": ["월(04.07)"], "rows": [["..."]]}
-  ],
-  "i18nSummary": {
-    "locale": "en",
-    "disclaimer": "AI-estimated allergy guidance.",
-    "items": [
-      {
-        "restaurant": "학생식당",
-        "dayColumn": "월(04.07)",
-        "menuTextKo": "김치볶음밥",
-        "menuSummaryEn": "Kimchi fried rice set",
-        "allergyNotesEn": "May contain egg and soy."
-      }
-    ]
+  "success": true,
+  "data": {
+    "source": "https://www.kumoh.ac.kr",
+    "capturedAt": "2026-04-07T03:00:00+00:00",
+    "restaurants": [
+      {"name": "학생식당", "columns": ["월(04.07)"], "rows": [["..."]]}
+    ],
+    "i18nSummary": {
+      "locale": "en",
+      "disclaimer": "AI-estimated allergy guidance.",
+      "items": [
+        {
+          "restaurant": "학생식당",
+          "dayColumn": "월(04.07)",
+          "menuTextKo": "김치볶음밥",
+          "menuSummaryEn": "Kimchi fried rice set",
+          "allergyNotesEn": "May contain egg and soy."
+        }
+      ]
+    }
   }
 }
 ```
@@ -575,10 +591,17 @@ public record FoodTextAnalysisIngestRequest(
 ) {}
 
 public record MenuIngestRequest(
+    Boolean success,
+    MenuIngestData data
+) {}
+
+public record MenuIngestData(
     String source,
     String capturedAt,
     List<RestaurantMenu> restaurants,
-    Map<String, Object> i18nSummary
+    Map<String, Object> i18nSummary,
+    List<String> userAllergensKo,
+    List<Map<String, Object>> avoidMenus
 ) {}
 
 public record RestaurantMenu(

@@ -101,7 +101,7 @@ def run_weekly_crawl_once(cfg: ServiceConfig, client: genai.Client | None) -> di
 
     return {
         "status": "ok",
-        "restaurants": len(payload.get("restaurants", [])),
+        "restaurants": len(payload.get("data", {}).get("restaurants", [])),
         "analysisRows": len(analysis_df),
         "i18nLocale": cfg.i18n_locale,
     }

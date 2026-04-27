@@ -55,7 +55,21 @@ def create_app(ctx: RuntimeContext) -> FastAPI:
                 except asyncio.CancelledError:
                     pass
 
-    app = FastAPI(title="AI-Agent-Crawler Live Service", lifespan=lifespan)
+    app = FastAPI(
+        title="AI-Agent-Crawler Live Service",
+        description="Spring 연동용 Python API 서버입니다. 성공 응답은 success/data, 실패 응답은 success/code/msg 형식을 사용합니다.",
+        version="1.1.0",
+        lifespan=lifespan,
+        openapi_url="/openapi.json",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_tags=[
+            {"name": "legacy", "description": "기존 운영 호환 엔드포인트"},
+            {"name": "v1-meals", "description": "식단 크롤링/조회 관련 API"},
+            {"name": "v1-ai", "description": "AI 분석/이미지 분석 API"},
+            {"name": "v1-translation", "description": "번역 API"},
+        ],
+    )
 
     @app.exception_handler(RequestValidationError)
     async def _validation_exception_handler(request: Request, exc: RequestValidationError):

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
 import requests
@@ -14,10 +13,21 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from food_image.agent import analyze_food_image_bytes
 from user_features.live.api_models import (
+    ApiErrorResponse,
+    ApiSuccessResponse,
     FreeTranslationRequest,
+    FoodImageAnalyzeDataResponse,
+    LegacyCrawlForwardResponse,
+    LegacyForwardResponse,
+    LegacyHealthResponse,
+    MenuBoardAnalyzeDataResponse,
+    PythonMealCrawlDataResponse,
     PythonMealCrawlRequest,
+    PythonMenuAnalysisDataResponse,
     PythonMenuAnalysisRequest,
+    PythonMenuTranslationDataResponse,
     PythonMenuTranslationRequest,
+    FreeTranslationDataResponse,
 )
 from user_features.live.services import LiveService
 from user_features.live.runtime import (
@@ -34,7 +44,6 @@ from user_features.live.service_ops import (
     validate_accept_language,
 )
 
-logger = logging.getLogger(__name__)
 security = HTTPBearer(auto_error=False)
 MAX_CONCURRENT_AI_TASKS = 4
 
@@ -77,9 +86,14 @@ def create_legacy_router(ctx: RuntimeContext) -> APIRouter:
     service = LiveService(ctx)
     cfg = service.cfg
     client = service.client
-    router = APIRouter()
+    router = APIRouter(tags=["legacy"])
 
-    @router.get("/health")
+    @router.get(
+        "/health",
+        summary="서비스 상태 확인",
+        description="운영 상태와 핵심 설정 여부를 반환합니다.",
+        response_model=LegacyHealthResponse,
+    )
     def health() -> dict[str, Any]:
         return {
             "ok": True,
@@ -91,9 +105,15 @@ def create_legacy_router(ctx: RuntimeContext) -> APIRouter:
             "timezone": cfg.timezone_name,
         }
 
-    @router.post("/crawl-and-forward")
+    @router.post(
+        "/crawl-and-forward",
+        summary="주간 크롤링 실행 후 Spring 전송",
+        description="레거시 운영 호환 엔드포인트입니다.",
+        responses={401: {"model": ApiErrorResponse}, 500: {"model": ApiErrorResponse}},
+        response_model=LegacyCrawlForwardResponse,
+    )
     def crawl_and_forward(
-        credentials: HTTPAuthorizationCredentials | None = Security(security),
+        credentials: Optional[HTTPAuthorizationCredentials] = Security(security),
     ) -> dict[str, Any]:
         if cfg.spring_api_token and (
             credentials is None or credentials.credentials != cfg.spring_api_token
@@ -104,11 +124,16 @@ def create_legacy_router(ctx: RuntimeContext) -> APIRouter:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e
 
-    @router.post("/analyze-image-and-forward")
+    @router.post(
+        "/analyze-image-and-forward",
+        summary="이미지 직접 분석 후 Spring 전송",
+        description="직접 이미지 상세 분석(옵션) 후 Spring으로 포워딩합니다.",
+        response_model=LegacyForwardResponse,
+    )
     async def analyze_image_and_forward(
         image: UploadFile = File(...),
-        user_id: str | None = Form(default=None),
-        request_id: str | None = Form(default=None),
+        user_id: Optional[str] = Form(default=None),
+        request_id: Optional[str] = Form(default=None),
     ) -> dict[str, Any]:
         if not cfg.enable_direct_image_analysis:
             raise HTTPException(
@@ -160,7 +185,11 @@ def create_legacy_router(ctx: RuntimeContext) -> APIRouter:
             )
         return {"status": "ok", "forwardStatus": res.status_code, "analysis": analysis}
 
-    @router.post("/analyze-food-text-and-forward")
+    @router.post(
+        "/analyze-food-text-and-forward",
+        summary="음식명 텍스트 분석 후 Spring 전송",
+        response_model=LegacyForwardResponse,
+    )
     async def analyze_food_text_and_forward(
         food_name: str = Body(..., embed=True, description="분석할 음식 이름"),
     ) -> dict[str, Any]:
@@ -192,10 +221,14 @@ def create_legacy_router(ctx: RuntimeContext) -> APIRouter:
             raise HTTPException(status_code=502, detail=f"Spring 응답 오류 HTTP {res.status_code}")
         return {"status": "ok", "forwardStatus": res.status_code, "analysis": analysis}
 
-    @router.post("/identify-image-and-forward")
+    @router.post(
+        "/identify-image-and-forward",
+        summary="이미지 음식명 식별 후 Spring 전송",
+        response_model=LegacyForwardResponse,
+    )
     async def identify_image_and_forward(
         image: UploadFile = File(...),
-        request_id: str | None = Form(default=None),
+        request_id: Optional[str] = Form(default=None),
     ) -> dict[str, Any]:
         if not cfg.spring_image_identify_url:
             raise HTTPException(status_code=500, detail="SPRING_IMAGE_IDENTIFY_URL is not set")
@@ -236,7 +269,15 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
     client = service.client
     router = APIRouter(prefix=API_V1_PREFIX)
 
-    @router.post("/python/meals/crawl")
+    @router.post(
+        "/python/meals/crawl",
+        tags=["v1-meals"],
+        summary="날짜 구간 식단 크롤링",
+        description="학교/식당/기간 기준으로 식단을 조회합니다.",
+        operation_id="crawlMealsV1",
+        response_model=ApiSuccessResponse[PythonMealCrawlDataResponse],
+        responses={400: {"model": ApiErrorResponse}, 500: {"model": ApiErrorResponse}},
+    )
     def crawl_meals_v1(payload: PythonMealCrawlRequest, request: Request):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
@@ -303,7 +344,14 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
             }
         )
 
-    @router.post("/python/menus/analyze")
+    @router.post(
+        "/python/menus/analyze",
+        tags=["v1-ai"],
+        summary="메뉴 텍스트 AI 분석",
+        operation_id="analyzeMenusV1",
+        response_model=ApiSuccessResponse[PythonMenuAnalysisDataResponse],
+        responses={400: {"model": ApiErrorResponse}, 500: {"model": ApiErrorResponse}},
+    )
     async def analyze_menus_v1(payload: PythonMenuAnalysisRequest, request: Request):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
@@ -312,67 +360,21 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         if client is None:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
 
-        semaphore = asyncio.Semaphore(MAX_CONCURRENT_AI_TASKS)
-
-        async def _analyze_single_menu(target) -> dict[str, Any]:
-            analyzed_at = datetime.now(ZoneInfo(cfg.timezone_name)).isoformat(timespec="seconds")
-            try:
-                async with semaphore:
-                    analysis = await asyncio.to_thread(
-                        service.analyze_food_text,
-                        target.menuName,
-                    )
-                ingredient_codes: list[dict[str, Any]] = []
-                dedup: set[str] = set()
-
-                for idx, ingredient in enumerate(analysis.get("ingredientsKo") or []):
-                    code = service.map_ingredient_code(str(ingredient).strip())
-                    if not code or code in dedup:
-                        continue
-                    dedup.add(code)
-                    ingredient_codes.append(
-                        {
-                            "ingredientCode": code,
-                            "confidence": round(max(0.5, 0.95 - (idx * 0.07)), 2),
-                        }
-                    )
-
-                for allergen in analysis.get("allergensKo") or []:
-                    if not isinstance(allergen, dict):
-                        continue
-                    code = service.map_ingredient_code(str(allergen.get("name", "")).strip())
-                    if not code or code in dedup:
-                        continue
-                    dedup.add(code)
-                    ingredient_codes.append({"ingredientCode": code, "confidence": 0.8})
-
-                return {
-                    "menuId": target.menuId,
-                    "menuName": target.menuName,
-                    "status": "COMPLETED",
-                    "reason": None,
-                    "modelName": "gemini",
-                    "modelVersion": cfg.gemini_model,
-                    "analyzedAt": analyzed_at,
-                    "ingredients": ingredient_codes,
-                }
-            except Exception as e:
-                return {
-                    "menuId": target.menuId,
-                    "menuName": target.menuName,
-                    "status": "FAILED",
-                    "reason": str(e)[:300],
-                    "modelName": "gemini",
-                    "modelVersion": cfg.gemini_model,
-                    "analyzedAt": analyzed_at,
-                    "ingredients": [],
-                }
-
-        results = await asyncio.gather(*[_analyze_single_menu(target) for target in payload.menus])
+        results = await service.analyze_menus(
+            payload.menus,
+            max_concurrency=MAX_CONCURRENT_AI_TASKS,
+        )
 
         return v1_success({"results": results})
 
-    @router.post("/python/menus/translate")
+    @router.post(
+        "/python/menus/translate",
+        tags=["v1-translation"],
+        summary="메뉴 다국어 번역",
+        operation_id="translateMenusV1",
+        response_model=ApiSuccessResponse[PythonMenuTranslationDataResponse],
+        responses={400: {"model": ApiErrorResponse}, 500: {"model": ApiErrorResponse}},
+    )
     async def translate_menus_v1(payload: PythonMenuTranslationRequest, request: Request):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
@@ -381,58 +383,22 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         if client is None:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
 
-        semaphore = asyncio.Semaphore(MAX_CONCURRENT_AI_TASKS)
-
-        async def _translate_single_menu(menu) -> dict[str, Any]:
-            translations: list[dict[str, str]] = []
-            translation_errors: list[dict[str, str]] = []
-
-            async def _translate_one_language(lang: str) -> tuple[str, str | None, str | None]:
-                lang_code = lang.strip()
-                if not lang_code:
-                    return "", None, None
-                try:
-                    async with semaphore:
-                        translated = await asyncio.to_thread(
-                            service.translate_text,
-                            "ko",
-                            lang_code,
-                            menu.menuName,
-                        )
-                    return lang_code, translated, None
-                except Exception as e:
-                    return lang_code, None, str(e)
-
-            results_by_lang = await asyncio.gather(
-                *[_translate_one_language(lang) for lang in payload.targetLanguages]
-            )
-
-            for lang_code, translated, error_reason in results_by_lang:
-                if not lang_code:
-                    continue
-                if translated is not None:
-                    translations.append({"langCode": lang_code, "translatedName": translated})
-                    continue
-                if error_reason is not None:
-                    logger.warning(
-                        "translation failed menuId=%s lang=%s: %s",
-                        menu.menuId,
-                        lang_code,
-                        error_reason,
-                    )
-                    translation_errors.append({"langCode": lang_code, "reason": error_reason})
-            return {
-                "menuId": menu.menuId,
-                "sourceName": menu.menuName,
-                "translations": translations,
-                "translationErrors": translation_errors,
-            }
-
-        results = await asyncio.gather(*[_translate_single_menu(menu) for menu in payload.menus])
+        results = await service.translate_menus(
+            payload.menus,
+            target_languages=payload.targetLanguages,
+            max_concurrency=MAX_CONCURRENT_AI_TASKS,
+        )
 
         return v1_success({"results": results})
 
-    @router.post("/translations")
+    @router.post(
+        "/translations",
+        tags=["v1-translation"],
+        summary="자유 문장 번역",
+        operation_id="freeTranslationV1",
+        response_model=ApiSuccessResponse[FreeTranslationDataResponse],
+        responses={400: {"model": ApiErrorResponse}, 500: {"model": ApiErrorResponse}},
+    )
     async def free_translation_v1(payload: FreeTranslationRequest, request: Request):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
@@ -457,11 +423,18 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
             }
         )
 
-    @router.post("/ai/menu-board/analyze")
+    @router.post(
+        "/ai/menu-board/analyze",
+        tags=["v1-ai"],
+        summary="메뉴판 이미지 분석",
+        operation_id="analyzeMenuBoardV1",
+        response_model=ApiSuccessResponse[MenuBoardAnalyzeDataResponse],
+        responses={400: {"model": ApiErrorResponse}, 500: {"model": ApiErrorResponse}},
+    )
     async def analyze_menu_board_v1(
         request: Request,
         image: UploadFile = File(...),
-        requestId: str | None = Form(default=None),
+        requestId: Optional[str] = Form(default=None),
     ):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
@@ -495,11 +468,18 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
             }
         )
 
-    @router.post("/ai/food-images/analyze")
+    @router.post(
+        "/ai/food-images/analyze",
+        tags=["v1-ai"],
+        summary="음식 이미지 분석",
+        operation_id="analyzeFoodImageV1",
+        response_model=ApiSuccessResponse[FoodImageAnalyzeDataResponse],
+        responses={400: {"model": ApiErrorResponse}, 500: {"model": ApiErrorResponse}},
+    )
     async def analyze_food_image_v1(
         request: Request,
         image: UploadFile = File(...),
-        requestId: str | None = Form(default=None),
+        requestId: Optional[str] = Form(default=None),
     ):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))

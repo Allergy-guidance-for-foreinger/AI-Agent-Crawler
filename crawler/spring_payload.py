@@ -63,4 +63,21 @@ def build_menu_ingest_payload(
         "capturedAt": when.isoformat(),
         "restaurants": restaurants,
     }
-    
+
+
+def build_menu_ingest_swagger_payload(
+    menus: dict[str, pd.DataFrame],
+    *,
+    source: str = "https://www.kumoh.ac.kr",
+    captured_at: datetime | None = None,
+) -> dict[str, Any]:
+    """Swagger 공통 응답 래핑(success/data) 형식으로 감싼 payload를 반환합니다."""
+    base = build_menu_ingest_payload(
+        menus,
+        source=source,
+        captured_at=captured_at,
+    )
+    return {
+        "success": True,
+        "data": base,
+    }

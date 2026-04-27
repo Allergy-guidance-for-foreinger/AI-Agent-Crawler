@@ -7,7 +7,7 @@ from typing import Any
 
 import pandas as pd
 
-from crawler.spring_payload import build_menu_ingest_payload
+from crawler.spring_payload import build_menu_ingest_swagger_payload
 from user_features.allergy_filter import (
     avoid_menus_for_api_payload,
     filter_avoid_dataframe,
@@ -27,12 +27,18 @@ def build_extended_menu_payload(
 ) -> dict[str, Any]:
     """Spring Boot 등에 넘기기 좋은 확장 페이로드.
 
-    - 기본: build_menu_ingest_payload 와 동일 키 (source, capturedAt, restaurants)
+    - 기본: Swagger 공통 래핑(success/data) 구조
+    - data 내부에 source/capturedAt/restaurants + 확장 필드를 배치
     - userAllergensKo: 사용자가 고른 알레르기(canonical)
     - avoidMenus: 분석 CSV가 있고 알레르기가 지정된 경우에만
     - i18nSummary: 호출 측에서 Gemini 등으로 채운 블록을 그대로 첨부
     """
-    base = build_menu_ingest_payload(menus, source=source, captured_at=captured_at)
+    wrapped = build_menu_ingest_swagger_payload(
+        menus,
+        source=source,
+        captured_at=captured_at,
+    )
+    base = wrapped["data"]
 
     if user_allergens_raw:
         canon = normalize_user_allergen_tokens(user_allergens_raw)
@@ -51,4 +57,4 @@ def build_extended_menu_payload(
     if i18n_summary is not None:
         base["i18nSummary"] = i18n_summary
 
-    return base
+    return wrapped
