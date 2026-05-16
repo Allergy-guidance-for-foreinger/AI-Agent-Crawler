@@ -14,13 +14,13 @@ from app.domain.entities import FoodImageQuery, FoodTextQuery, MenuCrawlQuery, S
 from app.repositories.ai_repository import AIRepository
 from app.repositories.crawl_repository import CrawlRepository
 from app.repositories.spring_repository import SpringRepository
-from app.services.ops import clamp_spicy_level
+from app.services.menu_analysis_builder import (
+    DEFAULT_ALLERGEN_CONFIDENCE,
+    build_menu_analysis_failed_result,
+    build_menu_analysis_success_result,
+)
 
 logger = logging.getLogger(__name__)
-BASE_INGREDIENT_CONFIDENCE = 0.95
-INGREDIENT_CONFIDENCE_DECAY = 0.07
-MIN_INGREDIENT_CONFIDENCE = 0.5
-ALLERGEN_FALLBACK_CONFIDENCE = 0.8
 
 
 class LiveService:
@@ -95,6 +95,9 @@ class LiveService:
     def map_ingredient_code(self, token: str) -> str | None:
         return self.ai_repo.map_ingredient_code(token)
 
+    def map_allergy_code(self, token: str) -> str | None:
+        return self.ai_repo.map_allergy_code(token)
+
     def forward_to_spring(
         self,
         *,
@@ -123,68 +126,33 @@ class LiveService:
             try:
                 async with semaphore:
                     analysis = await asyncio.to_thread(self.analyze_food_text, target.menuName)
-                ingredient_codes: list[dict[str, Any]] = []
-                ing_dedup: set[str] = set()
-                for idx, ingredient in enumerate(analysis.get("ingredientsKo") or []):
-                    code = self.map_ingredient_code(str(ingredient).strip())
-                    if not code or code in ing_dedup:
-                        continue
-                    ing_dedup.add(code)
-                    ingredient_codes.append(
-                        {
-                            "ingredientCode": code,
-                            "confidence": round(
-                                max(
-                                    MIN_INGREDIENT_CONFIDENCE,
-                                    BASE_INGREDIENT_CONFIDENCE - (idx * INGREDIENT_CONFIDENCE_DECAY),
-                                ),
-                                2,
-                            ),
-                        }
-                    )
-                allergy_codes: list[dict[str, Any]] = []
-                allergy_dedup: set[str] = set()
-                for allergen in analysis.get("allergensKo") or []:
-                    if not isinstance(allergen, dict):
-                        continue
-                    code = self.map_ingredient_code(str(allergen.get("name", "")).strip())
-                    if not code or code in allergy_dedup:
-                        continue
-                    allergy_dedup.add(code)
-                    allergy_codes.append(
-                        {"allergyCode": code, "confidence": ALLERGEN_FALLBACK_CONFIDENCE}
-                    )
-                spicy = clamp_spicy_level(
-                    analysis.get("spicyLevel") if analysis.get("spicyLevel") is not None else analysis.get("spicy_level")
+                result = build_menu_analysis_success_result(
+                    menu_id=target.menuId,
+                    menu_name=target.menuName,
+                    model_name="gemini",
+                    model_version=self.cfg.gemini_model,
+                    analyzed_at=analyzed_at,
+                    analysis=analysis,
+                    allergen_confidence=DEFAULT_ALLERGEN_CONFIDENCE,
                 )
-                return {
-                    "menuId": target.menuId,
-                    "menuName": target.menuName,
-                    "status": "SUCCESS",
-                    "reason": None,
-                    "modelName": "gemini",
-                    "modelVersion": self.cfg.gemini_model,
-                    "analyzedAt": analyzed_at,
-                    "spicyLevel": spicy,
-                    "spicy_level": spicy,
-                    "ingredients": ingredient_codes,
-                    "allergies": allergy_codes,
-                }
+                unmapped = result.get("unmappedAllergenNames") or []
+                if unmapped:
+                    logger.warning(
+                        "menuId=%s menuName=%s unmapped allergen labels: %s",
+                        target.menuId,
+                        target.menuName,
+                        unmapped,
+                    )
+                return result
             except Exception as e:
-                fail_spicy = clamp_spicy_level(None)
-                return {
-                    "menuId": target.menuId,
-                    "menuName": target.menuName,
-                    "status": "FAILED",
-                    "reason": str(e)[:300],
-                    "modelName": "gemini",
-                    "modelVersion": self.cfg.gemini_model,
-                    "analyzedAt": analyzed_at,
-                    "spicyLevel": fail_spicy,
-                    "spicy_level": fail_spicy,
-                    "ingredients": [],
-                    "allergies": [],
-                }
+                return build_menu_analysis_failed_result(
+                    menu_id=target.menuId,
+                    menu_name=target.menuName,
+                    model_name="gemini",
+                    model_version=self.cfg.gemini_model,
+                    analyzed_at=analyzed_at,
+                    reason=str(e),
+                )
 
         return await asyncio.gather(*[_analyze_single_menu(target) for target in menus])
 

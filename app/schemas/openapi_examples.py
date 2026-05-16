@@ -78,12 +78,15 @@ MENU_ANALYZE_SUCCESS_EXAMPLE: dict = {
                 "modelVersion": "gemini-2.5-flash",
                 "analyzedAt": "2026-04-27T12:00:00",
                 "ingredients": [
-                    {"ingredientCode": "SOYBEAN", "confidence": 0.88},
-                    {"ingredientCode": "WHEAT", "confidence": 0.81},
+                    {"ingredientName": "김치", "ingredientCode": None, "confidence": 0.95},
+                    {"ingredientName": "돼지고기", "ingredientCode": "PORK", "confidence": 0.88},
+                    {"ingredientName": "두부", "ingredientCode": "SOYBEAN", "confidence": 0.81},
                 ],
                 "allergies": [
                     {"allergyCode": "SOYBEAN", "confidence": 0.85},
+                    {"allergyCode": "PORK", "confidence": 0.8},
                 ],
+                "unmappedAllergenNames": [],
                 "spicyLevel": 3,
             }
         ]
@@ -161,8 +164,8 @@ FOOD_IMAGE_ANALYZE_RESPONSE_EXAMPLE: dict = {
         "requestId": "req-002",
         "foodName": "김치찌개",
         "ingredients": [
-            {"ingredientCode": "SOYBEAN", "confidence": 0.9},
-            {"ingredientCode": "WHEAT", "confidence": 0.75},
+            {"ingredientName": "두부", "ingredientCode": "SOYBEAN", "confidence": 0.9},
+            {"ingredientName": "밀가루", "ingredientCode": "WHEAT", "confidence": 0.75},
         ],
         "notes": "추정 결과이며 실제와 다를 수 있습니다.",
     },
