@@ -7,6 +7,7 @@ import json
 import sys
 import time
 from datetime import datetime
+from json import JSONDecodeError
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -93,18 +94,10 @@ def main() -> None:
     t0 = time.perf_counter()
 
     for i, name in enumerate(MENU_NAMES, start=1):
-        analyzed_at = datetime.now(tz).strftime("%Y-%m-%dT%H:%M:%S")
+        analyzed_at = datetime.now(tz).isoformat(timespec="seconds")
         try:
             raw = analyze_food_text(ctx.client, model, name)
-            result = build_menu_analysis_success_result(
-                menu_id=i,
-                menu_name=name,
-                model_name="gemini",
-                model_version=model,
-                analyzed_at=analyzed_at,
-                analysis=raw,
-            )
-        except Exception as e:
+        except (RuntimeError, JSONDecodeError) as e:
             failures += 1
             result = build_menu_analysis_failed_result(
                 menu_id=i,
@@ -113,6 +106,15 @@ def main() -> None:
                 model_version=model,
                 analyzed_at=analyzed_at,
                 reason=str(e),
+            )
+        else:
+            result = build_menu_analysis_success_result(
+                menu_id=i,
+                menu_name=name,
+                model_name="gemini",
+                model_version=model,
+                analyzed_at=analyzed_at,
+                analysis=raw,
             )
 
         ings = result.get("ingredients") or []

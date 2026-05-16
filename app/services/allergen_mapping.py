@@ -114,6 +114,17 @@ ALLERGY_KEYWORD_TO_API_CODE: dict[str, str] = {
 
 ALLERGY_API_CODES: frozenset[str] = frozenset(ALLERGY_KEYWORD_TO_API_CODE.values())
 
+# 영문 키워드 단어 경계 매칭용 (호출마다 정규식 컴파일하지 않음)
+_ASCII_KEYWORD_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(rf"\b{re.escape(keyword)}\b"), code)
+    for keyword, code in sorted(
+        ALLERGY_KEYWORD_TO_API_CODE.items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    )
+    if keyword.isascii() and len(keyword) >= 2
+)
+
 
 def _code_from_canonical_label(label: str) -> str | None:
     code = CANONICAL_TO_INGREDIENT_CODE.get(label)
@@ -142,23 +153,13 @@ def map_allergy_code(token: str) -> str | None:
         return _code_from_canonical_label(canonical)
 
     if normalized in ALLERGY_KEYWORD_TO_API_CODE:
-        code = ALLERGY_KEYWORD_TO_API_CODE[normalized]
-        return code if code in ALLERGY_API_CODES else None
+        return ALLERGY_KEYWORD_TO_API_CODE[normalized]
     lowered = normalized.lower()
     if lowered in ALLERGY_KEYWORD_TO_API_CODE:
-        code = ALLERGY_KEYWORD_TO_API_CODE[lowered]
-        return code if code in ALLERGY_API_CODES else None
+        return ALLERGY_KEYWORD_TO_API_CODE[lowered]
 
-    for keyword, code in sorted(
-        ALLERGY_KEYWORD_TO_API_CODE.items(),
-        key=lambda item: len(item[0]),
-        reverse=True,
-    ):
-        if not keyword.isascii() or len(keyword) < 2:
-            continue
-        if code not in ALLERGY_API_CODES:
-            continue
-        if re.search(rf"\b{re.escape(keyword)}\b", lowered):
+    for pattern, code in _ASCII_KEYWORD_PATTERNS:
+        if pattern.search(lowered):
             return code
     return None
 

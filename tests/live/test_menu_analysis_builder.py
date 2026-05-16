@@ -66,7 +66,7 @@ def test_response_wrapper_accepts_results_list():
 
 
 def test_ingredient_requires_name():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as exc_info:
         PythonMenuAnalysisResultDto.model_validate(
             {
                 "menuId": 1,
@@ -79,3 +79,5 @@ def test_ingredient_requires_name():
                 "spicyLevel": 0,
             }
         )
+    errors = exc_info.value.errors()
+    assert any(error.get("loc") == ("ingredients", 0, "ingredientName") for error in errors)
