@@ -47,6 +47,14 @@ def test_python_menus_analyze_returns_success_data(client: TestClient) -> None:
     assert first.get("status") in ("SUCCESS", "COMPLETED", "FAILED")
     if first.get("status") in ("SUCCESS", "COMPLETED"):
         assert isinstance(first.get("ingredients"), list)
+        assert isinstance(first.get("allergies"), list)
+        assert "spicyLevel" in first
+        assert "unmappedAllergenNames" in first
+        if first["ingredients"]:
+            ing0 = first["ingredients"][0]
+            assert "ingredientName" in ing0
+            assert "ingredientCode" in ing0
+            assert "confidence" in ing0
 
 
 def test_python_menus_translate_returns_success_data(client: TestClient) -> None:
@@ -80,6 +88,11 @@ def test_spring_native_menus_analyze_unwrapped(client: TestClient) -> None:
     assert "success" not in body
     assert "results" in body
     assert len(body["results"]) >= 1
+    first = body["results"][0]
+    if first.get("status") == "SUCCESS":
+        assert "ingredientName" in (first.get("ingredients") or [{}])[0] or not first.get("ingredients")
+        assert "allergies" in first
+        assert "spicyLevel" in first
 
 
 def test_free_translation_returns_success_data(client: TestClient) -> None:

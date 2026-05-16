@@ -38,8 +38,9 @@ from app.schemas.openapi_examples import (
     VALIDATION_ERROR_EXAMPLE,
     V1_INTERNAL_SERVER_ERROR_EXAMPLE,
 )
+from app.services.allergen_mapping import build_ingredient_results
 from app.services.live_service import LiveService
-from app.services.ops import clamp_spicy_level
+from app.services.menu_analysis_builder import build_menu_analysis_failed_result
 from app.common.service_ops import (
     CrawlSourceUpstreamError,
     sanitize_url_for_log,
@@ -354,25 +355,15 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 image_bytes,
                 mime_type,
             )
-            ingredient_codes: list[dict[str, object]] = []
-            dedup: set[str] = set()
-            for item in (analysis.get("추정_식재료") or []):
+            image_ingredient_names: list[str] = []
+            for item in analysis.get("추정_식재료") or []:
                 if not isinstance(item, dict):
                     continue
-                code = service.map_ingredient_code(str(item.get("재료", "")).strip())
-                if not code or code in dedup:
-                    continue
-                dedup.add(code)
-                confidence = _safe_float(item.get("신뢰도", 0.5), default=0.5)
-                ingredient_codes.append(
-                    {
-                        "ingredientCode": code,
-                        "confidence": max(0.0, min(confidence, 1.0)),
-                    }
-                )
-
-            # 이미지 분석은 추정_식재료만 있어 매운맛 미출력 → 0~5 스케일에서 기본 0(순함·미추정).
-            image_spicy = clamp_spicy_level(None)
+                name = str(item.get("재료", "")).strip()
+                if name:
+                    image_ingredient_names.append(name)
+            ingredient_results = build_ingredient_results(image_ingredient_names)
+            # 이미지 분석은 추정_식재료만 있어 매운맛·알레르기 미출력.
             result = {
                 "menuId": menuId,
                 "menuName": normalized_name,
@@ -381,27 +372,21 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 "modelName": "gemini",
                 "modelVersion": cfg.gemini_model,
                 "analyzedAt": analyzed_at,
-                "spicyLevel": image_spicy,
-                "spicy_level": image_spicy,
-                "ingredients": ingredient_codes,
+                "spicyLevel": 0,
+                "ingredients": ingredient_results,
                 "allergies": [],
+                "unmappedAllergenNames": [],
             }
         except Exception as e:
             logger.exception("analyze_menu_image_v1 failed")
-            fail_spicy = clamp_spicy_level(None)
-            result = {
-                "menuId": menuId,
-                "menuName": normalized_name,
-                "status": "FAILED",
-                "reason": str(e)[:300],
-                "modelName": "gemini",
-                "modelVersion": cfg.gemini_model,
-                "analyzedAt": analyzed_at,
-                "spicyLevel": fail_spicy,
-                "spicy_level": fail_spicy,
-                "ingredients": [],
-                "allergies": [],
-            }
+            result = build_menu_analysis_failed_result(
+                menu_id=menuId,
+                menu_name=normalized_name,
+                model_name="gemini",
+                model_version=cfg.gemini_model,
+                analyzed_at=analyzed_at,
+                reason=str(e),
+            )
         return v1_success({"results": [result]})
 
     @router.post(

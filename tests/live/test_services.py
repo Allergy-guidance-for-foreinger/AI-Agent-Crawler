@@ -135,7 +135,7 @@ def test_analyze_menus_splits_ingredients_allergies_and_spicy():
     class StubAIRepo:
         def analyze_food_text(self, client, model_name, food_name):
             return {
-                "ingredientsKo": ["달걀"],
+                "ingredientsKo": ["달걀", "물"],
                 "allergensKo": [{"name": "우유", "reason": "함유 가능"}],
                 "spicyLevel": 4,
             }
@@ -144,6 +144,10 @@ def test_analyze_menus_splits_ingredients_allergies_and_spicy():
             t = token.strip()
             if t == "달걀":
                 return "EGG"
+            return None
+
+        def map_allergy_code(self, token: str):
+            t = token.strip()
             if t == "우유":
                 return "MILK"
             return None
@@ -155,8 +159,10 @@ def test_analyze_menus_splits_ingredients_allergies_and_spicy():
     row = results[0]
     assert row["status"] == "SUCCESS"
     assert row["spicyLevel"] == 4
-    assert row["spicy_level"] == 4
-    ing_codes = {x["ingredientCode"] for x in row["ingredients"]}
-    assert ing_codes == {"EGG"}
+    assert "spicy_level" not in row
+    assert [x["ingredientName"] for x in row["ingredients"]] == ["달걀", "물"]
+    assert row["ingredients"][0]["ingredientCode"] == "EGG"
+    assert row["ingredients"][1]["ingredientCode"] is None
     allergy_codes = {x["allergyCode"] for x in row["allergies"]}
     assert allergy_codes == {"MILK"}
+    assert row["unmappedAllergenNames"] == []

@@ -8,6 +8,7 @@ from app.common.service_ops import (
     analyze_food_text,
     extract_menu_text_from_image,
     identify_food_from_image,
+    map_allergy_code,
     map_ingredient_code,
     translate_text_with_gemini,
 )
@@ -49,3 +50,6 @@ class AIRepository:
 
     def map_ingredient_code(self, token: str) -> str | None:
         return map_ingredient_code(token)
+
+    def map_allergy_code(self, token: str) -> str | None:
+        return map_allergy_code(token)
