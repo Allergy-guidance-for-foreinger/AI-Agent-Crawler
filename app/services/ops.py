@@ -20,11 +20,15 @@ from google import genai
 from google.genai import types
 from pandas.errors import ParserError
 
-from app.config.runtime import ALLOWED_ACCEPT_LANGUAGES, CANONICAL_TO_INGREDIENT_CODE, ServiceConfig
+from app.config.runtime import ALLOWED_ACCEPT_LANGUAGES, ServiceConfig
 from app.domain.allergy.agent import analyze_menus_with_gemini, iter_menu_entries, results_to_dataframe
 from app.domain.crawler.kumoh_menu import MENU_ITEM_DELIM, load_menus, normalize_kumoh_cafeteria_name, parse_table_from_html
 from app.domain.crawler.push_menus import post_menu_ingest
-from user_features.allergen_catalog import ALIAS_TO_CANONICAL
+from app.services.allergen_mapping import (
+    format_mfds_labels_for_prompt,
+    map_allergy_code,
+    map_ingredient_code,
+)
 from user_features.i18n_summary import summarize_for_locale
 from user_features.payloads import build_extended_menu_payload
 
@@ -45,108 +49,6 @@ def clamp_spicy_level(raw: Any) -> int:
     except (TypeError, ValueError):
         return SPICY_LEVEL_MIN
     return max(SPICY_LEVEL_MIN, min(SPICY_LEVEL_MAX, n))
-ALLERGY_KEYWORD_TO_API_CODE = {
-    "mackerel": "MACKEREL",
-    "고등어": "MACKEREL",
-    "crab": "CRAB",
-    "게": "CRAB",
-    "shrimp": "SHRIMP",
-    "새우": "SHRIMP",
-    "squid": "SQUID",
-    "오징어": "SQUID",
-    "shellfish": "SHELLFISH",
-    "조개류": "SHELLFISH",
-    "clam": "CLAM",
-    "조개": "CLAM",
-    "mussel": "MUSSEL",
-    "홍합": "MUSSEL",
-    "oyster": "OYSTER",
-    "굴": "OYSTER",
-    "lobster": "LOBSTER",
-    "랍스터": "LOBSTER",
-    "scallop": "SCALLOP",
-    "가리비": "SCALLOP",
-    "pork": "PORK",
-    "돼지고기": "PORK",
-    "돼지": "PORK",
-    "제육": "PORK",
-    "chicken": "CHICKEN",
-    "닭고기": "CHICKEN",
-    "닭": "CHICKEN",
-    "치킨": "CHICKEN",
-    "beef": "BEEF",
-    "쇠고기": "BEEF",
-    "소고기": "BEEF",
-    "egg": "EGG",
-    "난류": "EGG",
-    "계란": "EGG",
-    "달걀": "EGG",
-    "milk": "MILK",
-    "dairy": "MILK",
-    "우유": "MILK",
-    "유제품": "MILK",
-    "peanut": "PEANUT",
-    "땅콩": "PEANUT",
-    "soybean": "SOYBEAN",
-    "soy": "SOYBEAN",
-    "대두": "SOYBEAN",
-    "wheat": "WHEAT",
-    "밀": "WHEAT",
-    "buckwheat": "BUCKWHEAT",
-    "메밀": "BUCKWHEAT",
-    "oats": "OATS",
-    "귀리": "OATS",
-    "rye": "RYE",
-    "호밀": "RYE",
-    "barley": "BARLEY",
-    "보리": "BARLEY",
-    "tree nut": "TREE_NUT",
-    "tree nuts": "TREE_NUT",
-    "견과류": "TREE_NUT",
-    "walnut": "WALNUT",
-    "호두": "WALNUT",
-    "almond": "ALMOND",
-    "아몬드": "ALMOND",
-    "hazelnut": "HAZELNUT",
-    "헤이즐넛": "HAZELNUT",
-    "cashew": "CASHEW",
-    "캐슈너트": "CASHEW",
-    "pistachio": "PISTACHIO",
-    "피스타치오": "PISTACHIO",
-    "pecan": "PECAN",
-    "피칸": "PECAN",
-    "brazil nut": "BRAZIL_NUT",
-    "브라질너트": "BRAZIL_NUT",
-    "macadamia": "MACADAMIA",
-    "마카다미아": "MACADAMIA",
-    "pine nut": "PINE_NUT",
-    "잣": "PINE_NUT",
-    "peach": "PEACH",
-    "복숭아": "PEACH",
-    "mango": "MANGO",
-    "망고": "MANGO",
-    "avocado": "AVOCADO",
-    "아보카도": "AVOCADO",
-    "banana": "BANANA",
-    "바나나": "BANANA",
-    "kiwi": "KIWI",
-    "키위": "KIWI",
-    "tomato": "TOMATO",
-    "토마토": "TOMATO",
-    "celery": "CELERY",
-    "셀러리": "CELERY",
-    "mustard": "MUSTARD",
-    "머스타드": "MUSTARD",
-    "sulfites": "SULFITES",
-    "아황산류": "SULFITES",
-    "sesame": "SESAME",
-    "참깨": "SESAME",
-    "lupin": "LUPIN",
-    "루핀": "LUPIN",
-    "latex": "LATEX_RELATED",
-    "라텍스": "LATEX_RELATED",
-}
-ALLERGY_API_CODES = set(ALLERGY_KEYWORD_TO_API_CODE.values())
 
 
 class CrawlSourceUpstreamError(Exception):
@@ -222,23 +124,33 @@ def run_weekly_crawl_once(cfg: ServiceConfig, client: genai.Client | None) -> di
 def analyze_food_text(client: genai.Client | None, model_name: str, name: str) -> dict[str, Any]:
     if client is None:
         raise RuntimeError("GEMINI_API_KEY is not set")
+    mfds_labels = format_mfds_labels_for_prompt()
     prompt = f"""음식 이름: {name}
+
+한국 식품의약품안전처 알레르기 유발물질 표시 대상 기준으로 분석합니다.
 
 다음 JSON 객체 하나만 출력:
 {{
   "foodNameKo": "음식 이름(한국어)",
-  "ingredientsKo": ["주요 재료"],
-  "allergensKo": [{{"name": "알레르기 유발 가능 식품", "reason": "근거"}}],
+  "ingredientsKo": ["주요 재료를 빠짐없이 한국어로. 고기·해산물·채소·양념·부재료 포함"],
+  "allergensKo": [{{"name": "표준 알레르기명(아래 목록 중 하나)", "reason": "함유·가능 근거"}}],
   "spicyLevel": 2
 }}
-spicyLevel은 매운맛 강도로 정수 0(순함·거의 안 매움)~5(아주 매움)만 사용한다.
+
+규칙:
+- ingredientsKo: 메뉴에 들어갈 수 있는 주재료를 모두 나열(알레르기 유발 재료도 포함).
+- allergensKo.name: 아래 표준명 문자열 그대로만 사용. 목록에 없는 이름(생선, 어류, 콩 등) 금지.
+  표준명: {mfds_labels}
+  예: 계란→난류, 콩·두부·간장→대두, 밀가루→밀, 치킨→닭고기
+- 확실하지 않은 알레르기는 allergensKo에 넣지 말 것.
+- spicyLevel: 매운맛 0(순함)~5(아주 매움) 정수만.
 """
     resp = client.models.generate_content(
         model=model_name,
         contents=[prompt],
         config=types.GenerateContentConfig(
             temperature=0.2,
-            max_output_tokens=2048,
+            max_output_tokens=4096,
             response_mime_type="application/json",
         ),
     )
@@ -622,37 +534,6 @@ def _validate_source_url(source_url: str) -> None:
             raise RuntimeError("sourceUrl이 사설/내부/예약 IP로 해석되어 차단되었습니다.")
 
 
-def map_ingredient_code(token: str) -> str | None:
-    normalized = token.strip()
-    if not normalized:
-        return None
-    direct = CANONICAL_TO_INGREDIENT_CODE.get(normalized)
-    if direct:
-        return direct
-    normalized_upper = normalized.upper().replace("-", "_").replace(" ", "_")
-    if normalized_upper in ALLERGY_API_CODES:
-        return normalized_upper
-
-    lowered = normalized.lower()
-    by_keyword = ALLERGY_KEYWORD_TO_API_CODE.get(lowered)
-    if by_keyword:
-        return by_keyword
-    for keyword, code in ALLERGY_KEYWORD_TO_API_CODE.items():
-        if not keyword:
-            continue
-        if keyword.isascii():
-            if re.search(rf"\b{re.escape(keyword)}\b", lowered):
-                return code
-            continue
-        if keyword in normalized:
-            return code
-    alias_key = normalized.lower() if normalized.isascii() else normalized
-    canonical = ALIAS_TO_CANONICAL.get(normalized) or ALIAS_TO_CANONICAL.get(alias_key)
-    if canonical:
-        return CANONICAL_TO_INGREDIENT_CODE.get(canonical)
-    return None
-
-
 def translate_text_with_gemini(
     client: genai.Client | None,
     model_name: str,
@@ -701,6 +582,7 @@ __all__ = [
     "identify_food_from_image",
     "infer_meal_type",
     "load_menu_table_for_source",
+    "map_allergy_code",
     "map_ingredient_code",
     "next_run",
     "parse_menu_cell",

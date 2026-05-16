@@ -97,7 +97,11 @@ class PythonMealCrawlResponse(BaseModel):
 
 
 class PythonMenuIngredientResultDto(BaseModel):
-    ingredientCode: str
+    ingredientName: str = Field(..., min_length=1, description="추정 주재료명(한국어)")
+    ingredientCode: Optional[str] = Field(
+        default=None,
+        description="식약처 알레르기 API 코드와 정확 매칭될 때만 채움",
+    )
     confidence: float
 
 
@@ -116,6 +120,10 @@ class PythonMenuAnalysisResultDto(BaseModel):
     analyzedAt: datetime
     ingredients: list[PythonMenuIngredientResultDto]
     allergies: list[PythonMenuAllergyResultDto] = Field(default_factory=list)
+    unmappedAllergenNames: list[str] = Field(
+        default_factory=list,
+        description="모델이 반환했으나 API allergyCode로 매핑되지 않은 알레르기 표기",
+    )
     spicyLevel: int = Field(default=0, ge=0, le=5, description="매운맛 0(순함)~5(아주 매움), 미추정·실패 시 0")
 
 
