@@ -346,7 +346,6 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         if client is None:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
 
-        analyzed_at = datetime.now(ZoneInfo(cfg.timezone_name)).replace(microsecond=0)
         try:
             analysis = await asyncio.to_thread(
                 analyze_food_image_bytes,
@@ -368,14 +367,12 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 "menuId": menuId,
                 "menuName": normalized_name,
                 "status": "SUCCESS",
+                "spicyLevel": None,
                 "reason": None,
                 "modelName": "gemini",
                 "modelVersion": cfg.gemini_model,
-                "analyzedAt": analyzed_at,
-                "spicyLevel": 0,
                 "ingredients": ingredient_results,
                 "allergies": [],
-                "unmappedAllergenNames": [],
             }
         except Exception as e:
             logger.exception("analyze_menu_image_v1 failed")
@@ -384,7 +381,6 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 menu_name=normalized_name,
                 model_name="gemini",
                 model_version=cfg.gemini_model,
-                analyzed_at=analyzed_at,
                 reason=str(e),
             )
         return v1_success({"results": [result]})

@@ -22,6 +22,7 @@ from app.config.runtime import load_runtime_context
 from app.services.menu_analysis_builder import (
     build_menu_analysis_failed_result,
     build_menu_analysis_success_result,
+    strip_internal_analysis_fields,
 )
 from app.services.ops import analyze_food_text
 
@@ -94,7 +95,6 @@ def main() -> None:
     t0 = time.perf_counter()
 
     for i, name in enumerate(MENU_NAMES, start=1):
-        analyzed_at = datetime.now(tz).isoformat(timespec="seconds")
         try:
             raw = analyze_food_text(ctx.client, model, name)
         except (RuntimeError, JSONDecodeError) as e:
@@ -104,22 +104,22 @@ def main() -> None:
                 menu_name=name,
                 model_name="gemini",
                 model_version=model,
-                analyzed_at=analyzed_at,
                 reason=str(e),
             )
         else:
-            result = build_menu_analysis_success_result(
-                menu_id=i,
-                menu_name=name,
-                model_name="gemini",
-                model_version=model,
-                analyzed_at=analyzed_at,
-                analysis=raw,
+            result = strip_internal_analysis_fields(
+                build_menu_analysis_success_result(
+                    menu_id=i,
+                    menu_name=name,
+                    model_name="gemini",
+                    model_version=model,
+                    analysis=raw,
+                )
             )
 
         ings = result.get("ingredients") or []
         algs = result.get("allergies") or []
-        unmapped = result.get("unmappedAllergenNames") or []
+        unmapped = []
         coded_ings = [x for x in ings if x.get("ingredientCode")]
         rows.append(
             {

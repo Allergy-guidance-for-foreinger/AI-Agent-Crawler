@@ -18,6 +18,7 @@ from app.services.menu_analysis_builder import (
     DEFAULT_ALLERGEN_CONFIDENCE,
     build_menu_analysis_failed_result,
     build_menu_analysis_success_result,
+    strip_internal_analysis_fields,
 )
 
 logger = logging.getLogger(__name__)
@@ -121,8 +122,6 @@ class LiveService:
         semaphore = asyncio.Semaphore(max_concurrency)
 
         async def _analyze_single_menu(target) -> dict[str, Any]:
-            # Spring LocalDateTime 호환(타임존 오프셋 없이 로컬 벽시계)
-            analyzed_at = datetime.now(ZoneInfo(self.cfg.timezone_name)).strftime("%Y-%m-%dT%H:%M:%S")
             try:
                 async with semaphore:
                     analysis = await asyncio.to_thread(self.analyze_food_text, target.menuName)
@@ -131,11 +130,10 @@ class LiveService:
                     menu_name=target.menuName,
                     model_name="gemini",
                     model_version=self.cfg.gemini_model,
-                    analyzed_at=analyzed_at,
                     analysis=analysis,
                     allergen_confidence=DEFAULT_ALLERGEN_CONFIDENCE,
                 )
-                unmapped = result.get("unmappedAllergenNames") or []
+                unmapped = result.get("_unmappedAllergenNames") or []
                 if unmapped:
                     logger.warning(
                         "menuId=%s menuName=%s unmapped allergen labels: %s",
@@ -143,14 +141,13 @@ class LiveService:
                         target.menuName,
                         unmapped,
                     )
-                return result
+                return strip_internal_analysis_fields(result)
             except Exception as e:
                 return build_menu_analysis_failed_result(
                     menu_id=target.menuId,
                     menu_name=target.menuName,
                     model_name="gemini",
                     model_version=self.cfg.gemini_model,
-                    analyzed_at=analyzed_at,
                     reason=str(e),
                 )
 
