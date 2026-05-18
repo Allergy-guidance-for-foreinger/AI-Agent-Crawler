@@ -48,8 +48,8 @@ def test_python_menus_analyze_returns_success_data(client: TestClient) -> None:
     if first.get("status") == "SUCCESS":
         assert isinstance(first.get("ingredients"), list)
         assert isinstance(first.get("allergies"), list)
-        assert "spicyLevel" in first
-        assert 1 <= first["spicyLevel"] <= 5
+        if first.get("spicyLevel") is not None:
+            assert 0 <= first["spicyLevel"] <= 5
         assert "analyzedAt" not in first
         assert "unmappedAllergenNames" not in first
         if first["ingredients"]:

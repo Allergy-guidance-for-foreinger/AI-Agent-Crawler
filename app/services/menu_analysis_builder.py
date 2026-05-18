@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.services.allergen_mapping import build_allergy_results, build_ingredient_results
-from app.services.ops import clamp_spicy_level
+from app.services.ops import parse_spicy_level
 
 DEFAULT_ALLERGEN_CONFIDENCE = 0.8
 
@@ -25,7 +25,7 @@ def build_menu_analysis_success_result(
         analysis.get("allergensKo") or [],
         fallback_confidence=allergen_confidence,
     )
-    spicy = clamp_spicy_level(
+    spicy = parse_spicy_level(
         analysis.get("spicyLevel") if analysis.get("spicyLevel") is not None else analysis.get("spicy_level")
     )
     return {
@@ -55,7 +55,7 @@ def build_menu_analysis_failed_result(
         "menuId": menu_id,
         "menuName": menu_name,
         "status": "FAILED",
-        "spicyLevel": clamp_spicy_level(None),
+        "spicyLevel": None,
         "reason": reason[:300],
         "modelName": model_name,
         "modelVersion": model_version,

@@ -116,7 +116,12 @@ class PythonMenuAnalysisResultDto(BaseModel):
     menuId: int
     menuName: str
     status: str  # SUCCESS | FAILED
-    spicyLevel: int = Field(default=1, ge=1, le=5, description="매운맛 1~5")
+    spicyLevel: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="매운맛 0(없음)~5. 실패·미추정 시 null",
+    )
     reason: Optional[str] = None
     modelName: str
     modelVersion: str

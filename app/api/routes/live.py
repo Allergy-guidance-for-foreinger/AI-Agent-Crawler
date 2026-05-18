@@ -367,7 +367,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 "menuId": menuId,
                 "menuName": normalized_name,
                 "status": "SUCCESS",
-                "spicyLevel": 1,
+                "spicyLevel": None,
                 "reason": None,
                 "modelName": "gemini",
                 "modelVersion": cfg.gemini_model,

@@ -49,7 +49,7 @@ def test_build_menu_analysis_failed_result_matches_pydantic_dto():
     assert row.status == "FAILED"
     assert row.ingredients == []
     assert row.allergies == []
-    assert row.spicyLevel == 1
+    assert row.spicyLevel is None
 
 
 def test_response_wrapper_accepts_results_list():
@@ -66,6 +66,34 @@ def test_response_wrapper_accepts_results_list():
     assert len(parsed.results) == 1
 
 
+def test_success_without_spicy_level_is_null():
+    raw = strip_internal_analysis_fields(
+        build_menu_analysis_success_result(
+            menu_id=4,
+            menu_name="흰밥",
+            model_name="gemini",
+            model_version="x",
+            analysis={"ingredientsKo": ["쌀"], "allergensKo": []},
+        )
+    )
+    row = PythonMenuAnalysisResultDto.model_validate(raw)
+    assert row.spicyLevel is None
+
+
+def test_success_with_spicy_zero_is_not_null():
+    raw = strip_internal_analysis_fields(
+        build_menu_analysis_success_result(
+            menu_id=5,
+            menu_name="흰밥",
+            model_name="gemini",
+            model_version="x",
+            analysis={"ingredientsKo": ["쌀"], "allergensKo": [], "spicyLevel": 0},
+        )
+    )
+    row = PythonMenuAnalysisResultDto.model_validate(raw)
+    assert row.spicyLevel == 0
+
+
 def test_ingredient_requires_name():
     with pytest.raises(ValidationError) as exc_info:
         PythonMenuAnalysisResultDto.model_validate(
@@ -73,7 +101,7 @@ def test_ingredient_requires_name():
                 "menuId": 1,
                 "menuName": "x",
                 "status": "SUCCESS",
-                "spicyLevel": 1,
+                "spicyLevel": 0,
                 "modelName": "gemini",
                 "modelVersion": "x",
                 "ingredients": [{"ingredientCode": "EGG", "confidence": 0.9}],

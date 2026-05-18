@@ -308,7 +308,7 @@ public record PythonMenuAllergyResultDto(
 ```
 
 - `status`: 성공 시 `SUCCESS`, 예외 시 `FAILED`.
-- `spicyLevel`: 매운맛 **1~5** 정수. 미추정·실패 시 **1**.
+- `spicyLevel`: 매운맛 **0~5** 정수 또는 `null`. **0**=매운맛 없음(밥 등), **null**=실패·미추정.
 - `ingredients`: 추정 재료 목록(`ingredientName` 필수, `ingredientCode`는 매핑 성공 시만).
 - `allergies`: 알레르기 유발 추정 코드 목록(`allergyCode`). 분석 실패 시 빈 배열.
 
