@@ -44,12 +44,14 @@ def test_python_menus_analyze_returns_success_data(client: TestClient) -> None:
     assert len(data["results"]) >= 1
     first = data["results"][0]
     assert first.get("menuId") == 101
-    assert first.get("status") in ("SUCCESS", "COMPLETED", "FAILED")
-    if first.get("status") in ("SUCCESS", "COMPLETED"):
+    assert first.get("status") in ("SUCCESS", "FAILED")
+    if first.get("status") == "SUCCESS":
         assert isinstance(first.get("ingredients"), list)
         assert isinstance(first.get("allergies"), list)
         assert "spicyLevel" in first
-        assert "unmappedAllergenNames" in first
+        assert 1 <= first["spicyLevel"] <= 5
+        assert "analyzedAt" not in first
+        assert "unmappedAllergenNames" not in first
         if first["ingredients"]:
             ing0 = first["ingredients"][0]
             assert "ingredientName" in ing0

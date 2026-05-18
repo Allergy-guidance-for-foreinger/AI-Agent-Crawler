@@ -1,0 +1,1381 @@
+[
+  {
+    "menuName": "김치찌개",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 2,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "PORK",
+      "SOYBEAN",
+      "WHEAT",
+      "SHRIMP"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "김치",
+      "돼지고기",
+      "두부",
+      "대파",
+      "양파",
+      "고춧가루",
+      "마늘",
+      "국간장",
+      "멸치육수",
+      "청양고추"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "된장찌개",
+    "status": "SUCCESS",
+    "ingredientCount": 17,
+    "ingredientWithCode": 4,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "SOYBEAN",
+      "SHELLFISH",
+      "BEEF",
+      "PORK"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "된장",
+      "두부",
+      "애호박",
+      "양파",
+      "대파",
+      "청양고추",
+      "멸치",
+      "다시마",
+      "다진 마늘",
+      "고춧가루",
+      "감자",
+      "무",
+      "팽이버섯",
+      "느타리버섯",
+      "바지락",
+      "쇠고기",
+      "돼지고기"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "순두부찌개",
+    "status": "SUCCESS",
+    "ingredientCount": 13,
+    "ingredientWithCode": 4,
+    "allergyCount": 5,
+    "allergyCodes": [
+      "SOYBEAN",
+      "WHEAT",
+      "EGG",
+      "PORK",
+      "SHELLFISH"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "순두부",
+      "돼지고기",
+      "바지락",
+      "계란",
+      "대파",
+      "양파",
+      "애호박",
+      "버섯",
+      "고춧가루",
+      "간장",
+      "마늘",
+      "참기름",
+      "멸치육수"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "부대찌개",
+    "status": "SUCCESS",
+    "ingredientCount": 16,
+    "ingredientWithCode": 3,
+    "allergyCount": 7,
+    "allergyCodes": [
+      "PORK",
+      "BEEF",
+      "CHICKEN",
+      "WHEAT",
+      "SOYBEAN",
+      "SHRIMP",
+      "MILK"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "햄",
+      "소시지",
+      "스팸",
+      "김치",
+      "두부",
+      "라면 사리",
+      "대파",
+      "양파",
+      "버섯",
+      "고추장",
+      "고춧가루",
+      "간장",
+      "다진 마늘",
+      "육수",
+      "떡",
+      "치즈"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "미역국",
+    "status": "SUCCESS",
+    "ingredientCount": 7,
+    "ingredientWithCode": 1,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "BEEF",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "미역",
+      "쇠고기",
+      "국간장",
+      "참기름",
+      "마늘",
+      "소금",
+      "물"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "콩나물국",
+    "status": "SUCCESS",
+    "ingredientCount": 9,
+    "ingredientWithCode": 0,
+    "allergyCount": 2,
+    "allergyCodes": [
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "콩나물",
+      "물",
+      "멸치",
+      "다시마",
+      "국간장",
+      "다진 마늘",
+      "대파",
+      "소금",
+      "후추"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "불고기",
+    "status": "SUCCESS",
+    "ingredientCount": 11,
+    "ingredientWithCode": 2,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "BEEF",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 1,
+    "ingredientNames": [
+      "쇠고기",
+      "간장",
+      "설탕",
+      "다진 마늘",
+      "참기름",
+      "후추",
+      "양파",
+      "대파",
+      "당근",
+      "버섯",
+      "배즙"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "제육덮밥",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 2,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "PORK",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "돼지고기",
+      "쌀밥",
+      "고추장",
+      "고춧가루",
+      "간장",
+      "마늘",
+      "양파",
+      "대파",
+      "설탕",
+      "참기름"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "돈까스",
+    "status": "FAILED",
+    "ingredientCount": 0,
+    "ingredientWithCode": 0,
+    "allergyCount": 0,
+    "allergyCodes": [],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [],
+    "reason": "Expecting ',' delimiter: line 18 column 3 (char 193)"
+  },
+  {
+    "menuName": "치킨가라아게",
+    "status": "SUCCESS",
+    "ingredientCount": 9,
+    "ingredientWithCode": 3,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "CHICKEN",
+      "WHEAT",
+      "SOYBEAN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "닭고기",
+      "밀가루",
+      "전분",
+      "간장",
+      "생강",
+      "마늘",
+      "청주",
+      "미림",
+      "식용유"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "닭갈비",
+    "status": "SUCCESS",
+    "ingredientCount": 17,
+    "ingredientWithCode": 3,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "CHICKEN",
+      "SOYBEAN",
+      "WHEAT",
+      "MILK"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "닭고기",
+      "양배추",
+      "양파",
+      "대파",
+      "고구마",
+      "깻잎",
+      "고추장",
+      "고춧가루",
+      "간장",
+      "마늘",
+      "생강",
+      "설탕",
+      "물엿",
+      "참기름",
+      "떡",
+      "우동사리",
+      "치즈"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "오징어볶음",
+    "status": "SUCCESS",
+    "ingredientCount": 13,
+    "ingredientWithCode": 2,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "SQUID",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "오징어",
+      "양파",
+      "당근",
+      "대파",
+      "양배추",
+      "깻잎",
+      "고추장",
+      "고춧가루",
+      "간장",
+      "마늘",
+      "설탕",
+      "참기름",
+      "식용유"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "고등어구이",
+    "status": "SUCCESS",
+    "ingredientCount": 9,
+    "ingredientWithCode": 2,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "MACKEREL",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "고등어",
+      "소금",
+      "식용유",
+      "간장",
+      "물",
+      "설탕",
+      "다진 마늘",
+      "참기름",
+      "레몬"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "계란찜",
+    "status": "SUCCESS",
+    "ingredientCount": 5,
+    "ingredientWithCode": 1,
+    "allergyCount": 2,
+    "allergyCodes": [
+      "EGG",
+      "SOYBEAN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "계란",
+      "물",
+      "국간장",
+      "소금",
+      "대파"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "비빔밥",
+    "status": "SUCCESS",
+    "ingredientCount": 13,
+    "ingredientWithCode": 2,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "EGG",
+      "SOYBEAN",
+      "WHEAT",
+      "BEEF"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "밥",
+      "쇠고기",
+      "계란",
+      "시금치",
+      "고사리",
+      "도라지",
+      "콩나물",
+      "무생채",
+      "호박",
+      "고추장",
+      "참기름",
+      "김가루",
+      "깨"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "잔치국수",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 2,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "WHEAT",
+      "EGG",
+      "SOYBEAN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "밀국수면",
+      "멸치육수",
+      "애호박",
+      "당근",
+      "계란",
+      "김",
+      "파",
+      "간장",
+      "참기름",
+      "깨"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "카레라이스",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 3,
+    "allergyCount": 5,
+    "allergyCodes": [
+      "WHEAT",
+      "SOYBEAN",
+      "BEEF",
+      "PORK",
+      "CHICKEN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "쌀",
+      "카레 가루",
+      "감자",
+      "당근",
+      "양파",
+      "쇠고기",
+      "돼지고기",
+      "닭고기",
+      "식용유",
+      "물"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "스파게티",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 2,
+    "allergyCount": 5,
+    "allergyCodes": [
+      "WHEAT",
+      "TOMATO",
+      "BEEF",
+      "PORK",
+      "MILK"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "스파게티 면",
+      "토마토",
+      "다진 쇠고기",
+      "다진 돼지고기",
+      "양파",
+      "마늘",
+      "올리브 오일",
+      "치즈",
+      "소금",
+      "후추"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "짜장면",
+    "status": "SUCCESS",
+    "ingredientCount": 11,
+    "ingredientWithCode": 3,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "WHEAT",
+      "SOYBEAN",
+      "PORK"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "밀가루",
+      "춘장",
+      "돼지고기",
+      "양파",
+      "양배추",
+      "감자",
+      "오이",
+      "전분",
+      "식용유",
+      "설탕",
+      "간장"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "짬뽕",
+    "status": "SUCCESS",
+    "ingredientCount": 19,
+    "ingredientWithCode": 6,
+    "allergyCount": 7,
+    "allergyCodes": [
+      "WHEAT",
+      "SQUID",
+      "SHRIMP",
+      "SHELLFISH",
+      "CRAB",
+      "PORK",
+      "SOYBEAN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "밀가루 면",
+      "오징어",
+      "새우",
+      "홍합",
+      "바지락",
+      "게",
+      "돼지고기",
+      "양파",
+      "배추",
+      "호박",
+      "당근",
+      "대파",
+      "목이버섯",
+      "고춧가루",
+      "간장",
+      "마늘",
+      "생강",
+      "소금",
+      "후추"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "떡볶이",
+    "status": "SUCCESS",
+    "ingredientCount": 12,
+    "ingredientWithCode": 2,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "WHEAT",
+      "SOYBEAN",
+      "EGG",
+      "MILK"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "떡",
+      "고추장",
+      "고춧가루",
+      "설탕",
+      "간장",
+      "어묵",
+      "대파",
+      "양파",
+      "삶은 달걀",
+      "라면 사리",
+      "치즈",
+      "멸치 육수"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "라볶이",
+    "status": "SUCCESS",
+    "ingredientCount": 12,
+    "ingredientWithCode": 1,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "WHEAT",
+      "SOYBEAN",
+      "EGG"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "떡",
+      "라면",
+      "어묵",
+      "고추장",
+      "고춧가루",
+      "양파",
+      "대파",
+      "양배추",
+      "삶은 달걀",
+      "설탕",
+      "간장",
+      "다시마 육수"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "김밥",
+    "status": "SUCCESS",
+    "ingredientCount": 13,
+    "ingredientWithCode": 2,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "EGG",
+      "PORK",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "밥",
+      "김",
+      "단무지",
+      "햄",
+      "맛살",
+      "계란",
+      "시금치",
+      "당근",
+      "우엉",
+      "간장",
+      "참기름",
+      "소금",
+      "깨"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "참치김밥",
+    "status": "FAILED",
+    "ingredientCount": 0,
+    "ingredientWithCode": 0,
+    "allergyCount": 0,
+    "allergyCodes": [],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [],
+    "reason": "Expecting ',' delimiter: line 41 column 23 (char 578)"
+  },
+  {
+    "menuName": "라면",
+    "status": "SUCCESS",
+    "ingredientCount": 16,
+    "ingredientWithCode": 3,
+    "allergyCount": 8,
+    "allergyCodes": [
+      "WHEAT",
+      "SOYBEAN",
+      "BEEF",
+      "PORK",
+      "EGG",
+      "SHRIMP",
+      "SQUID",
+      "SHELLFISH"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "밀가루",
+      "팜유",
+      "전분",
+      "정제소금",
+      "고춧가루",
+      "간장",
+      "설탕",
+      "마늘",
+      "양파",
+      "파",
+      "버섯",
+      "건더기(건파, 건당근, 건미역)",
+      "계란",
+      "쇠고기 추출물",
+      "돼지고기 추출물",
+      "해산물 추출물(새우, 오징어, 조개류)"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "우동",
+    "status": "SUCCESS",
+    "ingredientCount": 13,
+    "ingredientWithCode": 3,
+    "allergyCount": 2,
+    "allergyCodes": [
+      "WHEAT",
+      "SOYBEAN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "밀가루",
+      "물",
+      "소금",
+      "다시마",
+      "가쓰오부시",
+      "간장",
+      "미림",
+      "설탕",
+      "어묵",
+      "유부",
+      "대파",
+      "튀김가루",
+      "김"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "쫄면",
+    "status": "SUCCESS",
+    "ingredientCount": 12,
+    "ingredientWithCode": 0,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "WHEAT",
+      "SOYBEAN",
+      "EGG"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "쫄면",
+      "양배추",
+      "콩나물",
+      "오이",
+      "당근",
+      "삶은 계란",
+      "고추장",
+      "고춧가루",
+      "식초",
+      "설탕",
+      "마늘",
+      "참기름"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "갈비탕",
+    "status": "SUCCESS",
+    "ingredientCount": 11,
+    "ingredientWithCode": 1,
+    "allergyCount": 5,
+    "allergyCodes": [
+      "BEEF",
+      "SOYBEAN",
+      "WHEAT",
+      "EGG",
+      "PINE_NUT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "쇠고기 갈비",
+      "무",
+      "대파",
+      "마늘",
+      "생강",
+      "국간장",
+      "소금",
+      "후추",
+      "당면",
+      "계란 지단",
+      "잣"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "설렁탕",
+    "status": "SUCCESS",
+    "ingredientCount": 7,
+    "ingredientWithCode": 1,
+    "allergyCount": 2,
+    "allergyCodes": [
+      "BEEF",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "쇠고기",
+      "사골",
+      "소면",
+      "파",
+      "소금",
+      "후추",
+      "밥"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "삼겹살구이",
+    "status": "SUCCESS",
+    "ingredientCount": 8,
+    "ingredientWithCode": 0,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "PORK",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "삼겹살",
+      "상추",
+      "깻잎",
+      "마늘",
+      "고추",
+      "쌈장",
+      "소금",
+      "후추"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "햄버거스테이크",
+    "status": "SUCCESS",
+    "ingredientCount": 15,
+    "ingredientWithCode": 7,
+    "allergyCount": 7,
+    "allergyCodes": [
+      "BEEF",
+      "PORK",
+      "EGG",
+      "WHEAT",
+      "SOYBEAN",
+      "MILK",
+      "TOMATO"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "쇠고기",
+      "돼지고기",
+      "양파",
+      "빵가루",
+      "난류",
+      "밀가루",
+      "버터",
+      "육수",
+      "토마토",
+      "간장",
+      "설탕",
+      "소금",
+      "후추",
+      "밥",
+      "샐러드채소"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "샐러드",
+    "status": "FAILED",
+    "ingredientCount": 0,
+    "ingredientWithCode": 0,
+    "allergyCount": 0,
+    "allergyCodes": [],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [],
+    "reason": "Expecting value: line 10 column 11 (char 122)"
+  },
+  {
+    "menuName": "토마토파스타",
+    "status": "SUCCESS",
+    "ingredientCount": 9,
+    "ingredientWithCode": 1,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "WHEAT",
+      "TOMATO",
+      "MILK"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "파스타면",
+      "토마토",
+      "양파",
+      "마늘",
+      "올리브유",
+      "소금",
+      "후추",
+      "바질",
+      "파마산 치즈"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "크림스프",
+    "status": "SUCCESS",
+    "ingredientCount": 8,
+    "ingredientWithCode": 3,
+    "allergyCount": 2,
+    "allergyCodes": [
+      "MILK",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "우유",
+      "생크림",
+      "밀가루",
+      "버터",
+      "양파",
+      "마늘",
+      "소금",
+      "후추"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "팽이버섯볶음밥",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 2,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "EGG",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "밥",
+      "팽이버섯",
+      "계란",
+      "양파",
+      "당근",
+      "대파",
+      "간장",
+      "식용유",
+      "소금",
+      "후추"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "낙지비빔밥",
+    "status": "SUCCESS",
+    "ingredientCount": 15,
+    "ingredientWithCode": 1,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "SOYBEAN",
+      "WHEAT",
+      "EGG"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "낙지",
+      "밥",
+      "콩나물",
+      "무생채",
+      "시금치",
+      "당근",
+      "애호박",
+      "상추",
+      "김가루",
+      "고추장",
+      "참기름",
+      "마늘",
+      "설탕",
+      "식초",
+      "계란"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "해물파전",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 5,
+    "allergyCount": 6,
+    "allergyCodes": [
+      "WHEAT",
+      "EGG",
+      "SQUID",
+      "SHRIMP",
+      "SHELLFISH",
+      "SOYBEAN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "밀가루",
+      "계란",
+      "파",
+      "오징어",
+      "새우",
+      "조개류 (바지락, 홍합 등)",
+      "물",
+      "소금",
+      "식용유",
+      "간장"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "김치전",
+    "status": "SUCCESS",
+    "ingredientCount": 9,
+    "ingredientWithCode": 5,
+    "allergyCount": 5,
+    "allergyCodes": [
+      "WHEAT",
+      "EGG",
+      "SHRIMP",
+      "PORK",
+      "SQUID"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "김치",
+      "밀가루",
+      "계란",
+      "물",
+      "식용유",
+      "돼지고기",
+      "오징어",
+      "새우",
+      "참치"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "치즈돈까스",
+    "status": "SUCCESS",
+    "ingredientCount": 9,
+    "ingredientWithCode": 4,
+    "allergyCount": 6,
+    "allergyCodes": [
+      "PORK",
+      "MILK",
+      "WHEAT",
+      "EGG",
+      "SOYBEAN",
+      "TOMATO"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "돼지고기",
+      "치즈",
+      "빵가루",
+      "밀가루",
+      "계란",
+      "식용유",
+      "돈까스 소스",
+      "양배추",
+      "밥"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "마라탕",
+    "status": "FAILED",
+    "ingredientCount": 0,
+    "ingredientWithCode": 0,
+    "allergyCount": 0,
+    "allergyCodes": [],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [],
+    "reason": "Unterminated string starting at: line 11 column 5 (char 125)"
+  },
+  {
+    "menuName": "탕수육",
+    "status": "SUCCESS",
+    "ingredientCount": 14,
+    "ingredientWithCode": 4,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "PORK",
+      "WHEAT",
+      "EGG",
+      "SOYBEAN"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "돼지고기",
+      "밀가루",
+      "전분",
+      "난류",
+      "당근",
+      "양파",
+      "오이",
+      "목이버섯",
+      "파인애플",
+      "설탕",
+      "식초",
+      "간장",
+      "소금",
+      "물"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "깐풍기",
+    "status": "SUCCESS",
+    "ingredientCount": 15,
+    "ingredientWithCode": 4,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "CHICKEN",
+      "WHEAT",
+      "SOYBEAN",
+      "EGG"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "닭고기",
+      "밀가루",
+      "전분",
+      "간장",
+      "설탕",
+      "식초",
+      "마늘",
+      "생강",
+      "건고추",
+      "피망",
+      "양파",
+      "당근",
+      "대파",
+      "식용유",
+      "난류"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "유부초밥",
+    "status": "FAILED",
+    "ingredientCount": 0,
+    "ingredientWithCode": 0,
+    "allergyCount": 0,
+    "allergyCodes": [],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [],
+    "reason": "Unterminated string starting at: line 12 column 5 (char 130)"
+  },
+  {
+    "menuName": "연어덮밥",
+    "status": "SUCCESS",
+    "ingredientCount": 11,
+    "ingredientWithCode": 1,
+    "allergyCount": 2,
+    "allergyCodes": [
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "연어",
+      "쌀",
+      "간장",
+      "설탕",
+      "식초",
+      "미림",
+      "양파",
+      "무순",
+      "와사비",
+      "김",
+      "레몬"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "새우튀김우동",
+    "status": "SUCCESS",
+    "ingredientCount": 8,
+    "ingredientWithCode": 3,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "SHRIMP",
+      "WHEAT",
+      "SOYBEAN",
+      "EGG"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 0,
+    "ingredientNames": [
+      "우동면",
+      "새우",
+      "튀김가루",
+      "우동 육수",
+      "간장",
+      "어묵",
+      "파",
+      "계란"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "돼지고기김치찌개",
+    "status": "SUCCESS",
+    "ingredientCount": 13,
+    "ingredientWithCode": 3,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "PORK",
+      "SOYBEAN",
+      "WHEAT",
+      "SHRIMP"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "돼지고기",
+      "김치",
+      "두부",
+      "대파",
+      "양파",
+      "고춧가루",
+      "마늘",
+      "간장",
+      "새우젓",
+      "물",
+      "식용유",
+      "설탕",
+      "소금"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "김치찌개/공기밥",
+    "status": "SUCCESS",
+    "ingredientCount": 11,
+    "ingredientWithCode": 2,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "PORK",
+      "SOYBEAN",
+      "WHEAT",
+      "SHRIMP"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "김치",
+      "돼지고기",
+      "두부",
+      "파",
+      "양파",
+      "고춧가루",
+      "마늘",
+      "고추장",
+      "국간장",
+      "쌀",
+      "새우젓"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "제육+계란후라이",
+    "status": "SUCCESS",
+    "ingredientCount": 12,
+    "ingredientWithCode": 3,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "PORK",
+      "EGG",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "돼지고기",
+      "계란",
+      "고추장",
+      "고춧가루",
+      "마늘",
+      "양파",
+      "파",
+      "설탕",
+      "간장",
+      "참기름",
+      "깨",
+      "식용유"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "치즈불닭볶음밥",
+    "status": "SUCCESS",
+    "ingredientCount": 12,
+    "ingredientWithCode": 1,
+    "allergyCount": 4,
+    "allergyCodes": [
+      "CHICKEN",
+      "MILK",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 4,
+    "ingredientNames": [
+      "밥",
+      "닭고기",
+      "모짜렐라 치즈",
+      "고추장",
+      "고춧가루",
+      "양파",
+      "대파",
+      "김가루",
+      "참기름",
+      "식용유",
+      "설탕",
+      "마늘"
+    ],
+    "reason": null
+  },
+  {
+    "menuName": "고추장삼겹살볶음",
+    "status": "SUCCESS",
+    "ingredientCount": 10,
+    "ingredientWithCode": 1,
+    "allergyCount": 3,
+    "allergyCodes": [
+      "PORK",
+      "SOYBEAN",
+      "WHEAT"
+    ],
+    "unmappedAllergenNames": [],
+    "spicyLevel": 2,
+    "ingredientNames": [
+      "삼겹살",
+      "고추장",
+      "고춧가루",
+      "간장",
+      "마늘",
+      "양파",
+      "대파",
+      "설탕",
+      "참기름",
+      "후추"
+    ],
+    "reason": null
+  }
+]

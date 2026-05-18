@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from app.services.allergen_mapping import build_allergy_results, build_ingredient_results
@@ -17,7 +16,6 @@ def build_menu_analysis_success_result(
     menu_name: str,
     model_name: str,
     model_version: str,
-    analyzed_at: datetime | str,
     analysis: dict[str, Any],
     allergen_confidence: float = DEFAULT_ALLERGEN_CONFIDENCE,
 ) -> dict[str, Any]:
@@ -34,14 +32,13 @@ def build_menu_analysis_success_result(
         "menuId": menu_id,
         "menuName": menu_name,
         "status": "SUCCESS",
+        "spicyLevel": spicy,
         "reason": None,
         "modelName": model_name,
         "modelVersion": model_version,
-        "analyzedAt": analyzed_at,
         "ingredients": ingredient_results,
         "allergies": allergy_results,
-        "unmappedAllergenNames": unmapped_allergens,
-        "spicyLevel": spicy,
+        "_unmappedAllergenNames": unmapped_allergens,
     }
 
 
@@ -51,7 +48,6 @@ def build_menu_analysis_failed_result(
     menu_name: str,
     model_name: str,
     model_version: str,
-    analyzed_at: datetime | str,
     reason: str,
 ) -> dict[str, Any]:
     """메뉴 분석 실패 결과 DTO dict."""
@@ -59,12 +55,15 @@ def build_menu_analysis_failed_result(
         "menuId": menu_id,
         "menuName": menu_name,
         "status": "FAILED",
+        "spicyLevel": clamp_spicy_level(None),
         "reason": reason[:300],
         "modelName": model_name,
         "modelVersion": model_version,
-        "analyzedAt": analyzed_at,
         "ingredients": [],
         "allergies": [],
-        "unmappedAllergenNames": [],
-        "spicyLevel": clamp_spicy_level(None),
     }
+
+
+def strip_internal_analysis_fields(result: dict[str, Any]) -> dict[str, Any]:
+    """API 응답용 dict에서 내부 필드 제거."""
+    return {k: v for k, v in result.items() if not str(k).startswith("_")}

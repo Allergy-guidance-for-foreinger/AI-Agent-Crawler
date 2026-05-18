@@ -111,20 +111,17 @@ class PythonMenuAllergyResultDto(BaseModel):
 
 
 class PythonMenuAnalysisResultDto(BaseModel):
+    """Spring PythonMenuAnalysisResultDto와 동일 필드 집합."""
+
     menuId: int
     menuName: str
-    status: str
+    status: str  # SUCCESS | FAILED
+    spicyLevel: int = Field(default=1, ge=1, le=5, description="매운맛 1~5")
     reason: Optional[str] = None
     modelName: str
     modelVersion: str
-    analyzedAt: datetime
     ingredients: list[PythonMenuIngredientResultDto]
     allergies: list[PythonMenuAllergyResultDto] = Field(default_factory=list)
-    unmappedAllergenNames: list[str] = Field(
-        default_factory=list,
-        description="모델이 반환했으나 API allergyCode로 매핑되지 않은 알레르기 표기",
-    )
-    spicyLevel: int = Field(default=0, ge=0, le=5, description="매운맛 0(순함)~5(아주 매움), 미추정·실패 시 0")
 
 
 class PythonMenuAnalysisResponse(BaseModel):
