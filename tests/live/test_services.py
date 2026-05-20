@@ -164,6 +164,6 @@ def test_analyze_menus_splits_ingredients_allergies_and_spicy():
     assert row["ingredients"][0]["ingredientCode"] == "EGG"
     assert row["ingredients"][1]["ingredientCode"] is None
     allergy_codes = {x["allergyCode"] for x in row["allergies"]}
-    assert allergy_codes == {"MILK"}
+    assert allergy_codes == {"EGG"}
     assert "unmappedAllergenNames" not in row
     assert "analyzedAt" not in row

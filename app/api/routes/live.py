@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import requests
 from fastapi import APIRouter, Body, File, Form, Request, UploadFile
@@ -318,7 +318,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         summary="이미지 기반 메뉴 AI 분석",
         description=(
             "음식 이미지에서 음식명·판단 근거·모델 신뢰도(confidence)를 반환합니다. "
-            "요청은 image 필수, menuId·menuName은 선택(응답에는 포함하지 않음)."
+            "요청은 image만 받으며, 응답에는 식별 결과만 포함됩니다."
         ),
         operation_id="analyzeMenuImageV1",
         response_model=ApiSuccessResponse[PythonMenuImageAnalysisResponse],
@@ -331,14 +331,11 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
     async def analyze_menu_image_v1(
         request: Request,
         image: UploadFile = File(...),
-        menuName: Optional[str] = Form(None),
     ):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
         except ValueError as e:
             return _v1_bad_request(str(e))
-
-        request_menu_name = (menuName or "").strip()
 
         image_bytes = await image.read()
         mime_type = image.content_type or "image/jpeg"
@@ -355,7 +352,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 cfg.gemini_model,
                 image_bytes,
                 mime_type,
-                request_menu_name or None,
+                None,
             )
             identified_food_name = extract_food_name_from_image_analysis(analysis)
             identified_food_reason = extract_food_name_reason_from_image_analysis(analysis)
