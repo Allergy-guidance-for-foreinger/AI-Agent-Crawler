@@ -40,15 +40,24 @@ SPICY_LEVEL_MIN = 0
 SPICY_LEVEL_MAX = 5
 
 
-def clamp_spicy_level(raw: Any) -> int:
-    """모델·JSON의 spicyLevel 값을 0~5 정수로 맞춘다. 공통 유틸."""
+def parse_spicy_level(raw: Any) -> int | None:
+    """모델 spicyLevel → 0~5. 미추정·파싱 실패 시 None, 0은 매운맛 없음(밥 등)."""
     if raw is None:
-        return SPICY_LEVEL_MIN
+        return None
+    if isinstance(raw, str) and not raw.strip():
+        return None
     try:
         n = int(float(raw))
     except (TypeError, ValueError):
-        return SPICY_LEVEL_MIN
-    return max(SPICY_LEVEL_MIN, min(SPICY_LEVEL_MAX, n))
+        return None
+    if n < SPICY_LEVEL_MIN or n > SPICY_LEVEL_MAX:
+        return None
+    return n
+
+
+def clamp_spicy_level(raw: Any) -> int | None:
+    """parse_spicy_level 별칭 (하위 호환)."""
+    return parse_spicy_level(raw)
 
 
 class CrawlSourceUpstreamError(Exception):
@@ -143,7 +152,7 @@ def analyze_food_text(client: genai.Client | None, model_name: str, name: str) -
   표준명: {mfds_labels}
   예: 계란→난류, 콩·두부·간장→대두, 밀가루→밀, 치킨→닭고기
 - 확실하지 않은 알레르기는 allergensKo에 넣지 말 것.
-- spicyLevel: 매운맛 0(순함)~5(아주 매움) 정수만.
+- spicyLevel: 매운맛 0~5 정수. 0=매운맛 없음(흰밥·미지근한 음식), 1=약함~5=아주 매움. 판단 불가하면 키 생략.
 """
     resp = client.models.generate_content(
         model=model_name,
@@ -160,7 +169,10 @@ def analyze_food_text(client: genai.Client | None, model_name: str, name: str) -
     parsed = json.loads(raw)
     if not isinstance(parsed, dict):
         raise RuntimeError("모델 응답 JSON이 객체 형태가 아닙니다.")
-    parsed["spicyLevel"] = clamp_spicy_level(parsed.get("spicyLevel"))
+    raw_spicy = parsed.get("spicyLevel")
+    if raw_spicy is None:
+        raw_spicy = parsed.get("spicy_level")
+    parsed["spicyLevel"] = parse_spicy_level(raw_spicy)
     return parsed
 
 

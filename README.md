@@ -286,17 +286,17 @@ public record PythonMenuAnalysisResponse(
 public record PythonMenuAnalysisResultDto(
         Long menuId,
         String menuName,
-        String status,
+        PythonMenuAnalysisStatus status,
+        Long spicyLevel,
         String reason,
         String modelName,
         String modelVersion,
-        LocalDateTime analyzedAt,
         List<PythonMenuIngredientResultDto> ingredients,
-        List<PythonMenuAllergyResultDto> allergies,
-        Integer spicyLevel
+        List<PythonMenuAllergyResultDto> allergies
 ) { }
 
 public record PythonMenuIngredientResultDto(
+        String ingredientName,
         String ingredientCode,
         BigDecimal confidence
 ) { }
@@ -308,8 +308,8 @@ public record PythonMenuAllergyResultDto(
 ```
 
 - `status`: 성공 시 `SUCCESS`, 예외 시 `FAILED`.
-- `spicyLevel`: 매운맛 **0(순함)~5(아주 매움)** 정수. 모델이 내지 않거나 실패·이미지 분석 등으로 값이 없을 때는 **0**으로 채워집니다.
-- `ingredients`: 추정 식재료 코드 목록.
+- `spicyLevel`: 매운맛 **0~5** 정수 또는 `null`. **0**=매운맛 없음(밥 등), **null**=실패·미추정.
+- `ingredients`: 추정 재료 목록(`ingredientName` 필수, `ingredientCode`는 매핑 성공 시만).
 - `allergies`: 알레르기 유발 추정 코드 목록(`allergyCode`). 분석 실패 시 빈 배열.
 
 성공 응답 예시:
@@ -323,17 +323,17 @@ public record PythonMenuAllergyResultDto(
         "menuId": 101,
         "menuName": "김치찌개",
         "status": "SUCCESS",
+        "spicyLevel": 3,
         "reason": null,
         "modelName": "gemini",
         "modelVersion": "gemini-2.5-flash",
-        "analyzedAt": "2026-04-15T09:30:00",
         "ingredients": [
-          { "ingredientCode": "PORK", "confidence": 0.97 },
-          { "ingredientCode": "SHRIMP", "confidence": 0.81 },
-          { "ingredientCode": "SOYBEAN", "confidence": 0.88 }
+          { "ingredientName": "김치", "ingredientCode": null, "confidence": 0.95 },
+          { "ingredientName": "돼지고기", "ingredientCode": "PORK", "confidence": 0.88 }
         ],
         "allergies": [
-          { "allergyCode": "SOYBEAN", "confidence": 0.85 }
+          { "allergyCode": "SOYBEAN", "confidence": 0.85 },
+          { "allergyCode": "PORK", "confidence": 0.8 }
         ],
         "spicyLevel": 3
       }
