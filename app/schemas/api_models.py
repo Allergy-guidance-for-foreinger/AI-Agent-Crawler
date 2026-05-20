@@ -113,6 +113,10 @@ class PythonMenuAllergyResultDto(BaseModel):
 class PythonMenuAnalysisResultDto(BaseModel):
     menuId: int
     menuName: str
+    identifiedFoodName: Optional[str] = Field(
+        default=None,
+        description="이미지 분석 시 모델이 추정한 음식명(한국어). 텍스트 분석만 사용 시 null.",
+    )
     status: str
     reason: Optional[str] = None
     modelName: str

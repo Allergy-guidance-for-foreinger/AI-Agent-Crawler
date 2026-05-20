@@ -514,8 +514,8 @@ public record PythonTranslatedMenuNameDto(
 
 - `multipart/form-data`
 - `image`: 이미지 파일 (필수)
-- `menuId`: 메뉴 매핑용 ID (필수)
-- `menuName`: 메뉴명 (필수)
+- `menuId`: 메뉴 매핑용 ID (선택, 기본 `0`)
+- `menuName`: 메뉴명 (선택). 모를 때는 생략하고 `identifiedFoodName`을 사용
 
 성공 응답 예시:
 
