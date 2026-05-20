@@ -117,6 +117,10 @@ class PythonMenuAnalysisResultDto(BaseModel):
         default=None,
         description="이미지 분석 시 모델이 추정한 음식명(한국어). 텍스트 분석만 사용 시 null.",
     )
+    identifiedFoodNameReason: Optional[str] = Field(
+        default=None,
+        description="이미지 분석 시 해당 음식으로 판단한 시각적·맥락적 근거(한국어). 텍스트 분석만 사용 시 null.",
+    )
     status: str
     reason: Optional[str] = None
     modelName: str
@@ -133,6 +137,31 @@ class PythonMenuAnalysisResultDto(BaseModel):
 
 class PythonMenuAnalysisResponse(BaseModel):
     results: list[PythonMenuAnalysisResultDto]
+
+
+class PythonMenuImageAnalysisResultDto(BaseModel):
+    """`POST /python/menus/analyze-image` 전용 응답 항목."""
+
+    identifiedFoodName: Optional[str] = Field(
+        default=None,
+        description="이미지에서 추정한 음식명(한국어)",
+    )
+    identifiedFoodNameReason: Optional[str] = Field(
+        default=None,
+        description="해당 음식으로 판단한 시각적·맥락적 근거(한국어)",
+    )
+    confidence: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="추정 음식명에 대한 모델 신뢰도 0.0~1.0",
+    )
+    modelName: str
+    modelVersion: str
+
+
+class PythonMenuImageAnalysisResponse(BaseModel):
+    results: list[PythonMenuImageAnalysisResultDto]
 
 
 class PythonTranslatedMenuNameDto(BaseModel):

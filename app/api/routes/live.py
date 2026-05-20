@@ -19,6 +19,7 @@ from app.schemas.api_models import (
     PythonMealCrawlResponse,
     PythonMealCrawlRequest,
     PythonMenuAnalysisResponse,
+    PythonMenuImageAnalysisResponse,
     PythonMenuAnalysisRequest,
     PythonMenuAnalysisTargetDto,
     PythonMenuOcrResponse,
@@ -38,9 +39,7 @@ from app.schemas.openapi_examples import (
     VALIDATION_ERROR_EXAMPLE,
     V1_INTERNAL_SERVER_ERROR_EXAMPLE,
 )
-from app.services.allergen_mapping import build_ingredient_results
 from app.services.live_service import LiveService
-from app.services.menu_analysis_builder import build_menu_analysis_failed_result
 from app.common.service_ops import (
     CrawlSourceUpstreamError,
     sanitize_url_for_log,
@@ -50,8 +49,9 @@ from app.common.service_ops import (
 )
 from app.domain.image.agent import (
     analyze_food_image_bytes,
+    extract_confidence_from_image_analysis,
     extract_food_name_from_image_analysis,
-    extract_ingredient_names_from_image_analysis,
+    extract_food_name_reason_from_image_analysis,
 )
 
 logger = logging.getLogger(__name__)
@@ -319,11 +319,11 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         tags=["v1"],
         summary="이미지 기반 메뉴 AI 분석",
         description=(
-            "음식 이미지를 분석하고 텍스트 분석과 동일한 results DTO 형태로 반환합니다. "
-            "메뉴명을 모를 때는 image만내면 되며, identifiedFoodName에 추정 음식명이 담깁니다."
+            "음식 이미지에서 음식명·판단 근거·모델 신뢰도(confidence)를 반환합니다. "
+            "요청은 image 필수, menuId·menuName은 선택(응답에는 포함하지 않음)."
         ),
         operation_id="analyzeMenuImageV1",
-        response_model=ApiSuccessResponse[PythonMenuAnalysisResponse],
+        response_model=ApiSuccessResponse[PythonMenuImageAnalysisResponse],
         responses={
             400: {"model": ApiErrorResponse},
             500: {"model": ApiErrorResponse},
@@ -351,7 +351,6 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         if client is None:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
 
-        analyzed_at = datetime.now(ZoneInfo(cfg.timezone_name)).replace(microsecond=0)
         try:
             analysis = await asyncio.to_thread(
                 analyze_food_image_bytes,
@@ -361,35 +360,19 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 mime_type,
                 request_menu_name or None,
             )
-            image_ingredient_names = extract_ingredient_names_from_image_analysis(analysis)
-            ingredient_results = build_ingredient_results(image_ingredient_names)
             identified_food_name = extract_food_name_from_image_analysis(analysis)
-            response_menu_name = request_menu_name or identified_food_name or ""
-            # 이미지 분석은 추정_식재료만 있어 매운맛·알레르기 미출력.
+            identified_food_reason = extract_food_name_reason_from_image_analysis(analysis)
+            confidence = extract_confidence_from_image_analysis(analysis)
             result = {
-                "menuId": menuId,
-                "menuName": response_menu_name,
                 "identifiedFoodName": identified_food_name,
-                "status": "SUCCESS",
-                "reason": None,
+                "identifiedFoodNameReason": identified_food_reason,
+                "confidence": confidence,
                 "modelName": "gemini",
                 "modelVersion": cfg.gemini_model,
-                "analyzedAt": analyzed_at,
-                "spicyLevel": 0,
-                "ingredients": ingredient_results,
-                "allergies": [],
-                "unmappedAllergenNames": [],
             }
         except Exception as e:
             logger.exception("analyze_menu_image_v1 failed")
-            result = build_menu_analysis_failed_result(
-                menu_id=menuId,
-                menu_name=request_menu_name or "",
-                model_name="gemini",
-                model_version=cfg.gemini_model,
-                analyzed_at=analyzed_at,
-                reason=str(e),
-            )
+            return v1_error("PYM_500", str(e)[:500], status_code=500)
         return v1_success({"results": [result]})
 
     @router.post(

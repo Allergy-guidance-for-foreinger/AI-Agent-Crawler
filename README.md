@@ -123,7 +123,7 @@ docker run -d --env-file .env -p 8000:8000 ai-agent-crawler
 | `POST` | `/api/v1/python/menus/analyze` | 메뉴 재료·알레르기 코드·매운맛(0~5) 분석 |
 | `POST` | `/api/v1/python/menus/ocr` | 메뉴판 이미지 OCR 추출 |
 | `POST` | `/api/v1/python/menus/analyze-from-ocr` | 메뉴판 OCR 후 연속 분석 |
-| `POST` | `/api/v1/python/menus/analyze-image` | 이미지 기반 메뉴 재료/알레르기 코드 분석 |
+| `POST` | `/api/v1/python/menus/analyze-image` | 음식 이미지 → 음식명·근거·confidence |
 | `POST` | `/api/v1/python/menus/translate` | 메뉴명 번역 |
 
 ### Spring Native API (Unwrapped)
@@ -508,14 +508,13 @@ public record PythonTranslatedMenuNameDto(
 
 ### `POST /api/v1/python/menus/analyze-image`
 
-추후 확장을 위해 추가한 API입니다. 이미지 입력이지만, 응답은 텍스트 분석과 동일하게 `results` 배열 DTO를 사용합니다.
+음식 사진에서 **추정 음식명**, **판단 근거**, **신뢰도(confidence)** 를 반환합니다. (`PythonMenuImageAnalysisResultDto`, 텍스트 분석 API 응답과 스키마가 다릅니다.)
 
 요청 형식:
 
 - `multipart/form-data`
-- `image`: 이미지 파일 (필수)
-- `menuId`: 메뉴 매핑용 ID (선택, 기본 `0`)
-- `menuName`: 메뉴명 (선택). 모를 때는 생략하고 `identifiedFoodName`을 사용
+- `image`: (필수)
+- `menuId`, `menuName`: (선택) 모델 힌트용, **응답 본문에는 포함되지 않음**
 
 성공 응답 예시:
 
@@ -525,19 +524,11 @@ public record PythonTranslatedMenuNameDto(
   "data": {
     "results": [
       {
-        "menuId": 101,
-        "menuName": "김치찌개",
-        "status": "SUCCESS",
-        "reason": null,
+        "identifiedFoodName": "제육볶음",
+        "identifiedFoodNameReason": "붉은 양념의 돼지고기 볶음으로 제육볶음과 유사합니다.",
+        "confidence": 0.81,
         "modelName": "gemini",
-        "modelVersion": "gemini-2.5-flash",
-        "analyzedAt": "2026-04-15T09:30:00",
-        "ingredients": [
-          { "ingredientCode": "PORK", "confidence": 0.92 },
-          { "ingredientCode": "SOYBEAN", "confidence": 0.88 }
-        ],
-        "allergies": [],
-        "spicyLevel": 0
+        "modelVersion": "gemini-2.5-flash"
       }
     ]
   }
@@ -552,6 +543,10 @@ public record PythonTranslatedMenuNameDto(
 
 ```json
 { "success": false, "code": "AI_001", "msg": "GEMINI_API_KEY is not set" }
+```
+
+```json
+{ "success": false, "code": "PYM_500", "msg": "..." }
 ```
 
 ---

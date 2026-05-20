@@ -18,6 +18,8 @@ from utils.json_extract import extract_json_object
 
 _IMAGE_JSON_SCHEMA = """{
   "음식명": "이미지에서 보이는 음식 이름(한국어)",
+  "음식명_근거": "왜 이 음식으로 판단했는지 이미지에서 보이는 시각적 근거(한국어, 1~3문장)",
+  "confidence": 0.85,
   "추정_식재료": [
     {"재료": "주요 식재료(한국어)", "근거": "이미지에서 보이는 근거"}
   ]
@@ -34,8 +36,10 @@ def _build_image_analysis_prompt(*, menu_name: str | None) -> str:
 {_IMAGE_JSON_SCHEMA}
 
 규칙:
+- 음식명_근거: 색·형태·그릇·고명·튀김 여부 등 이미지에서 확인한 근거로 왜 해당 음식인지 설명하세요.
+- confidence: 이 음식명 추정에 대한 확신도를 0.0~1.0 사이 실수로만 넣으세요.
 - 추정_식재료: 눈에 보이거나 이 음식에 흔히 들어가는 주재료를 3개 이상 나열하세요.
-- 키 이름은 위와 동일하게 「음식명」「추정_식재료」「재료」「근거」만 사용하세요.
+- 키 이름은 위와 동일하게 「음식명」「음식명_근거」「confidence」「추정_식재료」「재료」「근거」만 사용하세요.
 - 재료를 알 수 없으면 추정_식재료를 빈 배열 []로 두세요.
 """
 
@@ -76,6 +80,33 @@ def extract_food_name_from_image_analysis(analysis: dict[str, Any]) -> str | Non
             name = value.strip()
             if name:
                 return name
+    return None
+
+
+def extract_food_name_reason_from_image_analysis(analysis: dict[str, Any]) -> str | None:
+    """Gemini 이미지 분석 JSON에서 음식명 판단 근거를 추출합니다."""
+    for key in ("음식명_근거", "identifiedFoodNameReason", "foodNameReason", "reasonKo"):
+        value = analysis.get(key)
+        if isinstance(value, str):
+            reason = value.strip()
+            if reason:
+                return reason
+    return None
+
+
+def extract_confidence_from_image_analysis(analysis: dict[str, Any]) -> float | None:
+    """Gemini 이미지 분석 JSON에서 음식명 추정 신뢰도(0~1)를 추출합니다."""
+    for key in ("confidence", "신뢰도", "확신도"):
+        raw = analysis.get(key)
+        if raw is None:
+            continue
+        try:
+            c = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if c > 1.0 and c <= 100.0:
+            c = c / 100.0
+        return max(0.0, min(1.0, c))
     return None
 
 
