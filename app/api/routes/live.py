@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
 from typing import Any, Optional
-from zoneinfo import ZoneInfo
 
 import requests
 from fastapi import APIRouter, Body, File, Form, Request, UploadFile
@@ -333,7 +331,6 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
     async def analyze_menu_image_v1(
         request: Request,
         image: UploadFile = File(...),
-        menuId: int = Form(0),
         menuName: Optional[str] = Form(None),
     ):
         try:
@@ -370,9 +367,9 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 "modelName": "gemini",
                 "modelVersion": cfg.gemini_model,
             }
-        except Exception as e:
+        except Exception:
             logger.exception("analyze_menu_image_v1 failed")
-            return v1_error("PYM_500", str(e)[:500], status_code=500)
+            return v1_error("PYM_500", "이미지 분석 중 내부 오류가 발생했습니다.", status_code=500)
         return v1_success({"results": [result]})
 
     @router.post(

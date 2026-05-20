@@ -514,7 +514,7 @@ public record PythonTranslatedMenuNameDto(
 
 - `multipart/form-data`
 - `image`: (필수)
-- `menuId`, `menuName`: (선택) 모델 힌트용, **응답 본문에는 포함되지 않음**
+- `menuName`: (선택) 모델 힌트용, **응답 본문에는 포함되지 않음**
 
 성공 응답 예시:
 
