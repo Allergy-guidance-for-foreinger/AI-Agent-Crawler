@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
 from typing import Any
-from zoneinfo import ZoneInfo
 
 import requests
 from fastapi import APIRouter, Body, File, Form, Request, UploadFile
@@ -19,6 +17,7 @@ from app.schemas.api_models import (
     PythonMealCrawlResponse,
     PythonMealCrawlRequest,
     PythonMenuAnalysisResponse,
+    PythonMenuImageAnalysisResponse,
     PythonMenuAnalysisRequest,
     PythonMenuAnalysisTargetDto,
     PythonMenuOcrResponse,
@@ -38,9 +37,7 @@ from app.schemas.openapi_examples import (
     VALIDATION_ERROR_EXAMPLE,
     V1_INTERNAL_SERVER_ERROR_EXAMPLE,
 )
-from app.services.allergen_mapping import build_ingredient_results
 from app.services.live_service import LiveService
-from app.services.menu_analysis_builder import build_menu_analysis_failed_result
 from app.common.service_ops import (
     CrawlSourceUpstreamError,
     sanitize_url_for_log,
@@ -48,7 +45,12 @@ from app.common.service_ops import (
     v1_success,
     validate_accept_language,
 )
-from app.domain.image.agent import analyze_food_image_bytes
+from app.domain.image.agent import (
+    analyze_food_image_bytes,
+    extract_confidence_from_image_analysis,
+    extract_food_name_from_image_analysis,
+    extract_food_name_reason_from_image_analysis,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -314,9 +316,12 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         "/python/menus/analyze-image",
         tags=["v1"],
         summary="이미지 기반 메뉴 AI 분석",
-        description="음식 이미지를 분석하고 텍스트 분석과 동일한 results DTO 형태로 반환합니다.",
+        description=(
+            "음식 이미지에서 음식명·판단 근거·모델 신뢰도(confidence)를 반환합니다. "
+            "요청은 image만 받으며, 응답에는 식별 결과만 포함됩니다."
+        ),
         operation_id="analyzeMenuImageV1",
-        response_model=ApiSuccessResponse[PythonMenuAnalysisResponse],
+        response_model=ApiSuccessResponse[PythonMenuImageAnalysisResponse],
         responses={
             400: {"model": ApiErrorResponse},
             500: {"model": ApiErrorResponse},
@@ -326,17 +331,11 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
     async def analyze_menu_image_v1(
         request: Request,
         image: UploadFile = File(...),
-        menuId: int = Form(...),
-        menuName: str = Form(...),
     ):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
         except ValueError as e:
             return _v1_bad_request(str(e))
-
-        normalized_name = menuName.strip()
-        if not normalized_name:
-            return _v1_bad_request("menuName은 비어 있을 수 없습니다.")
 
         image_bytes = await image.read()
         mime_type = image.content_type or "image/jpeg"
@@ -353,36 +352,21 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 cfg.gemini_model,
                 image_bytes,
                 mime_type,
+                None,
             )
-            image_ingredient_names: list[str] = []
-            for item in analysis.get("추정_식재료") or []:
-                if not isinstance(item, dict):
-                    continue
-                name = str(item.get("재료", "")).strip()
-                if name:
-                    image_ingredient_names.append(name)
-            ingredient_results = build_ingredient_results(image_ingredient_names)
-            # 이미지 분석은 추정_식재료만 있어 매운맛·알레르기 미출력.
+            identified_food_name = extract_food_name_from_image_analysis(analysis)
+            identified_food_reason = extract_food_name_reason_from_image_analysis(analysis)
+            confidence = extract_confidence_from_image_analysis(analysis)
             result = {
-                "menuId": menuId,
-                "menuName": normalized_name,
-                "status": "SUCCESS",
-                "spicyLevel": None,
-                "reason": None,
+                "identifiedFoodName": identified_food_name,
+                "identifiedFoodNameReason": identified_food_reason,
+                "confidence": confidence,
                 "modelName": "gemini",
                 "modelVersion": cfg.gemini_model,
-                "ingredients": ingredient_results,
-                "allergies": [],
             }
-        except Exception as e:
+        except Exception:
             logger.exception("analyze_menu_image_v1 failed")
-            result = build_menu_analysis_failed_result(
-                menu_id=menuId,
-                menu_name=normalized_name,
-                model_name="gemini",
-                model_version=cfg.gemini_model,
-                reason=str(e),
-            )
+            return v1_error("PYM_500", "이미지 분석 중 내부 오류가 발생했습니다.", status_code=500)
         return v1_success({"results": [result]})
 
     @router.post(

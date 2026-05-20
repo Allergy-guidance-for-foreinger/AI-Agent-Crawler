@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.allergen_mapping import build_allergy_results, build_ingredient_results
+from app.services.allergen_mapping import build_ingredient_results
 from app.services.ops import parse_spicy_level
 
 DEFAULT_ALLERGEN_CONFIDENCE = 0.8
@@ -21,10 +21,16 @@ def build_menu_analysis_success_result(
 ) -> dict[str, Any]:
     """analyze_food_text JSON → 메뉴 분석 성공 결과 DTO dict."""
     ingredient_results = build_ingredient_results(analysis.get("ingredientsKo") or [])
-    allergy_results, unmapped_allergens = build_allergy_results(
-        analysis.get("allergensKo") or [],
-        fallback_confidence=allergen_confidence,
-    )
+    # allergies는 ingredients에 실제 등장한 알레르기 코드만 파생해 정합성을 보장합니다.
+    dedup: set[str] = set()
+    allergy_results: list[dict[str, Any]] = []
+    for item in ingredient_results:
+        code = str(item.get("ingredientCode") or "").strip()
+        if not code or code in dedup:
+            continue
+        dedup.add(code)
+        allergy_results.append({"allergyCode": code, "confidence": allergen_confidence})
+    unmapped_allergens: list[str] = []
     spicy = parse_spicy_level(
         analysis.get("spicyLevel") if analysis.get("spicyLevel") is not None else analysis.get("spicy_level")
     )

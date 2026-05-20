@@ -31,7 +31,7 @@ def test_build_menu_analysis_success_result_matches_pydantic_dto():
     assert row.ingredients[0].ingredientName == "김치"
     assert row.ingredients[0].ingredientCode is None
     assert row.ingredients[1].ingredientCode == "PORK"
-    assert row.allergies[0].allergyCode == "SOYBEAN"
+    assert row.allergies[0].allergyCode == "PORK"
     assert row.spicyLevel == 3
     assert "analyzedAt" not in raw
     assert "unmappedAllergenNames" not in raw
