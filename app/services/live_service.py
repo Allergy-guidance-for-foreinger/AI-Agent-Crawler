@@ -20,6 +20,12 @@ from app.services.menu_analysis_builder import (
     build_menu_analysis_success_result,
     strip_internal_analysis_fields,
 )
+from app.domain.image.agent import (
+    analyze_food_image_bytes,
+    extract_confidence_from_image_analysis,
+    extract_food_name_from_image_analysis,
+    extract_food_name_reason_from_image_analysis,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +98,48 @@ class LiveService:
             target_lang,
             text,
         )
+
+    async def analyze_food_image_with_language(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        language: str,
+    ) -> dict[str, Any]:
+        """음식 이미지를 분석하고 요청 언어에 맞는 식별 결과를 반환합니다."""
+        analysis = await asyncio.to_thread(
+            analyze_food_image_bytes,
+            self.client,
+            self.cfg.gemini_model,
+            image_bytes,
+            mime_type,
+            None,
+        )
+        korean_name = extract_food_name_from_image_analysis(analysis)
+        korean_reason = extract_food_name_reason_from_image_analysis(analysis)
+        confidence = extract_confidence_from_image_analysis(analysis)
+
+        if language == "ko":
+            translated_name = korean_name
+            localized_reason = korean_reason
+        else:
+            async def _maybe_translate(text: str | None) -> str | None:
+                if not text:
+                    return None
+                return await asyncio.to_thread(self.translate_text, "ko", language, text)
+
+            translated_name, localized_reason = await asyncio.gather(
+                _maybe_translate(korean_name),
+                _maybe_translate(korean_reason),
+            )
+
+        return {
+            "identifiedFoodKoreanName": korean_name,
+            "identifiedFoodTranslationName": translated_name,
+            "identifiedFoodNameReason": localized_reason,
+            "confidence": confidence,
+            "modelName": "gemini",
+            "modelVersion": self.cfg.gemini_model,
+        }
 
     def map_ingredient_code(self, token: str) -> str | None:
         return self.ai_repo.map_ingredient_code(token)

@@ -106,3 +106,33 @@ def test_free_translation_returns_success_data(client: TestClient) -> None:
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert "translatedText" in body
+
+
+def test_python_menus_analyze_image_returns_i18n_fields(client: TestClient) -> None:
+    from pathlib import Path
+
+    image_path = Path("test_image.jpeg")
+    if not image_path.exists():
+        pytest.skip("test_image.jpeg 없음")
+
+    with image_path.open("rb") as f:
+        resp = client.post(
+            "/api/v1/python/menus/analyze-image",
+            files={"image": (image_path.name, f, "image/jpeg")},
+            data={"language": "en"},
+            headers={"Accept-Language": "ko"},
+        )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body.get("success") is True
+    results = (body.get("data") or {}).get("results") or []
+    assert len(results) >= 1
+    first = results[0]
+    assert "identifiedFoodKoreanName" in first
+    assert "identifiedFoodTranslationName" in first
+    assert "identifiedFoodNameReason" in first
+    assert "confidence" in first
+    assert first.get("modelName") == "gemini"
+    if first.get("identifiedFoodKoreanName"):
+        assert first.get("identifiedFoodTranslationName")
+        assert first.get("identifiedFoodNameReason")

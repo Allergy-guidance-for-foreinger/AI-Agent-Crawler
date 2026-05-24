@@ -44,12 +44,7 @@ from app.common.service_ops import (
     v1_error,
     v1_success,
     validate_accept_language,
-)
-from app.domain.image.agent import (
-    analyze_food_image_bytes,
-    extract_confidence_from_image_analysis,
-    extract_food_name_from_image_analysis,
-    extract_food_name_reason_from_image_analysis,
+    normalize_request_language,
 )
 
 logger = logging.getLogger(__name__)
@@ -318,7 +313,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         summary="이미지 기반 메뉴 AI 분석",
         description=(
             "음식 이미지에서 음식명·판단 근거·모델 신뢰도(confidence)를 반환합니다. "
-            "요청은 image만 받으며, 응답에는 식별 결과만 포함됩니다."
+            "요청은 language와 image를 받으며, 응답은 요청 language 기준으로 내려갑니다."
         ),
         operation_id="analyzeMenuImageV1",
         response_model=ApiSuccessResponse[PythonMenuImageAnalysisResponse],
@@ -331,9 +326,11 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
     async def analyze_menu_image_v1(
         request: Request,
         image: UploadFile = File(...),
+        language: str = Form(default="ko"),
     ):
         try:
             validate_accept_language(request.headers.get("Accept-Language"))
+            lang_code = normalize_request_language(language)
         except ValueError as e:
             return _v1_bad_request(str(e))
 
@@ -346,24 +343,11 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
 
         try:
-            analysis = await asyncio.to_thread(
-                analyze_food_image_bytes,
-                client,
-                cfg.gemini_model,
+            result = await service.analyze_food_image_with_language(
                 image_bytes,
                 mime_type,
-                None,
+                lang_code,
             )
-            identified_food_name = extract_food_name_from_image_analysis(analysis)
-            identified_food_reason = extract_food_name_reason_from_image_analysis(analysis)
-            confidence = extract_confidence_from_image_analysis(analysis)
-            result = {
-                "identifiedFoodName": identified_food_name,
-                "identifiedFoodNameReason": identified_food_reason,
-                "confidence": confidence,
-                "modelName": "gemini",
-                "modelVersion": cfg.gemini_model,
-            }
         except Exception:
             logger.exception("analyze_menu_image_v1 failed")
             return v1_error("PYM_500", "이미지 분석 중 내부 오류가 발생했습니다.", status_code=500)

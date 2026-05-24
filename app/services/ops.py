@@ -292,20 +292,25 @@ def v1_error(code: str, msg: str, *, status_code: int) -> JSONResponse:
 def validate_accept_language(lang: str | None) -> None:
     if not lang:
         return
-    first = lang.split(",", 1)[0].strip()
-    if not first:
-        return
+    normalize_request_language(lang)
+
+
+def normalize_request_language(lang: str | None) -> str:
+    """요청 언어 코드를 허용 목록의 표준 코드(ko, en, zh-CN, vi, ja)로 정규화합니다."""
+    if not lang or not str(lang).strip():
+        raise ValueError("language는 필수입니다. 허용: ko, en, zh-CN, vi, ja")
+    first = str(lang).split(",", 1)[0].strip()
     normalized = first.split(";", 1)[0].strip()
-    lowered = normalized.lower()
     if normalized in ALLOWED_ACCEPT_LANGUAGES:
-        return
-    if lowered.startswith("zh-cn"):
-        return
+        return normalized
+    lowered = normalized.lower()
+    if lowered.startswith("zh-cn") or lowered == "zh":
+        return "zh-CN"
     base_lang = lowered.split("-", 1)[0]
     if base_lang in {"ko", "en", "vi", "ja"}:
-        return
+        return base_lang
     raise ValueError(
-        f"지원하지 않는 Accept-Language: {normalized}. "
+        f"지원하지 않는 language: {normalized}. "
         "허용: ko, en, zh-CN, vi, ja"
     )
 
@@ -602,6 +607,7 @@ __all__ = [
     "run_weekly_crawl_once",
     "sanitize_url_for_log",
     "translate_text_with_gemini",
+    "normalize_request_language",
     "validate_accept_language",
     "v1_error",
     "v1_success",

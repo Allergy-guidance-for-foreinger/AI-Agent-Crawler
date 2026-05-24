@@ -136,13 +136,17 @@ class PythonMenuAnalysisResponse(BaseModel):
 class PythonMenuImageAnalysisResultDto(BaseModel):
     """`POST /python/menus/analyze-image` 전용 응답 항목."""
 
-    identifiedFoodName: Optional[str] = Field(
+    identifiedFoodKoreanName: Optional[str] = Field(
         default=None,
         description="이미지에서 추정한 음식명(한국어)",
     )
+    identifiedFoodTranslationName: Optional[str] = Field(
+        default=None,
+        description="요청 language에 맞게 번역한 음식명",
+    )
     identifiedFoodNameReason: Optional[str] = Field(
         default=None,
-        description="해당 음식으로 판단한 시각적·맥락적 근거(한국어)",
+        description="해당 음식으로 판단한 시각적·맥락적 근거(요청 language)",
     )
     confidence: Optional[float] = Field(
         default=None,
