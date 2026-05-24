@@ -118,23 +118,35 @@ class LiveService:
         korean_reason = extract_food_name_reason_from_image_analysis(analysis)
         confidence = extract_confidence_from_image_analysis(analysis)
 
-        if language == "ko":
-            translated_name = korean_name
-            localized_reason = korean_reason
-        else:
-            async def _maybe_translate(text: str | None) -> str | None:
-                if not text:
-                    return None
-                return await asyncio.to_thread(self.translate_text, "ko", language, text)
-
-            translated_name, localized_reason = await asyncio.gather(
-                _maybe_translate(korean_name),
-                _maybe_translate(korean_reason),
+        async def _localize_name() -> dict[str, str | None]:
+            if not korean_name:
+                return {"translation": None, "pronunciation": None}
+            if language == "ko":
+                return {"translation": korean_name, "pronunciation": korean_name}
+            return await asyncio.to_thread(
+                self.ai_repo.localize_food_name,
+                self.client,
+                self.cfg.gemini_model,
+                language,
+                korean_name,
             )
+
+        async def _maybe_translate_reason(text: str | None) -> str | None:
+            if not text:
+                return None
+            if language == "ko":
+                return text
+            return await asyncio.to_thread(self.translate_text, "ko", language, text)
+
+        localized_name, localized_reason = await asyncio.gather(
+            _localize_name(),
+            _maybe_translate_reason(korean_reason),
+        )
 
         return {
             "identifiedFoodKoreanName": korean_name,
-            "identifiedFoodTranslationName": translated_name,
+            "identifiedFoodTranslationName": localized_name.get("translation"),
+            "identifiedFoodPronunciationName": localized_name.get("pronunciation"),
             "identifiedFoodNameReason": localized_reason,
             "confidence": confidence,
             "modelName": "gemini",

@@ -187,6 +187,7 @@ def test_analyze_food_image_with_language_ko(monkeypatch):
     )
     assert result["identifiedFoodKoreanName"] == "제육볶음"
     assert result["identifiedFoodTranslationName"] == "제육볶음"
+    assert result["identifiedFoodPronunciationName"] == "제육볶음"
     assert result["identifiedFoodNameReason"] == "붉은 양념의 돼지고기 볶음입니다."
     assert result["confidence"] == 0.81
 
@@ -195,12 +196,14 @@ def test_analyze_food_image_with_language_en(monkeypatch):
     ctx = _build_ctx()
 
     class StubAIRepo:
-        def translate_text(self, client, model_name, source_lang, target_lang, text):
-            mapping = {
-                "제육볶음": "Spicy stir-fried pork",
-                "붉은 양념의 돼지고기 볶음입니다.": "Stir-fried pork in red sauce.",
+        def localize_food_name(self, client, model_name, target_lang, korean_name):
+            return {
+                "translation": "Spicy stir-fried pork",
+                "pronunciation": "je-yuk-bokkeum",
             }
-            return mapping[text]
+
+        def translate_text(self, client, model_name, source_lang, target_lang, text):
+            return "Stir-fried pork in red sauce."
 
     svc = LiveService(ctx, ai_repo=StubAIRepo())
     monkeypatch.setattr(
@@ -217,4 +220,5 @@ def test_analyze_food_image_with_language_en(monkeypatch):
     )
     assert result["identifiedFoodKoreanName"] == "제육볶음"
     assert result["identifiedFoodTranslationName"] == "Spicy stir-fried pork"
+    assert result["identifiedFoodPronunciationName"] == "je-yuk-bokkeum"
     assert result["identifiedFoodNameReason"] == "Stir-fried pork in red sauce."

@@ -123,7 +123,7 @@ docker run -d --env-file .env -p 8000:8000 ai-agent-crawler
 | `POST` | `/api/v1/python/menus/analyze` | 메뉴 재료·알레르기 코드·매운맛(0~5) 분석 |
 | `POST` | `/api/v1/python/menus/ocr` | 메뉴판 이미지 OCR 추출 |
 | `POST` | `/api/v1/python/menus/analyze-from-ocr` | 메뉴판 OCR 후 연속 분석 |
-| `POST` | `/api/v1/python/menus/analyze-image` | 음식 이미지 → 한국어명·번역명·근거(language)·confidence |
+| `POST` | `/api/v1/python/menus/analyze-image` | 음식 이미지 → 한국어명·번역·발음·근거(language)·confidence |
 | `POST` | `/api/v1/python/menus/translate` | 메뉴명 번역 |
 
 ### Spring Native API (Unwrapped)
@@ -508,7 +508,7 @@ public record PythonTranslatedMenuNameDto(
 
 ### `POST /api/v1/python/menus/analyze-image`
 
-음식 사진에서 **한국어 음식명**, **요청 language 번역명**, **판단 근거(요청 language)**, **신뢰도(confidence)** 를 반환합니다.
+음식 사진에서 **한국어 음식명**, **요청 language 번역(의미)**, **요청 language 발음 표기**, **판단 근거(요청 language)**, **신뢰도(confidence)** 를 반환합니다.
 
 요청 형식:
 
@@ -526,6 +526,7 @@ public record PythonTranslatedMenuNameDto(
       {
         "identifiedFoodKoreanName": "제육볶음",
         "identifiedFoodTranslationName": "Spicy stir-fried pork",
+        "identifiedFoodPronunciationName": "je-yuk-bokkeum",
         "identifiedFoodNameReason": "The dish shows stir-fried pork in red chili sauce, similar to Korean spicy pork.",
         "confidence": 0.81,
         "modelName": "gemini",
@@ -536,7 +537,7 @@ public record PythonTranslatedMenuNameDto(
 }
 ```
 
-`language=ko`이면 `identifiedFoodTranslationName`과 `identifiedFoodNameReason`도 한국어로 반환됩니다.
+`language=ko`이면 `identifiedFoodTranslationName`, `identifiedFoodPronunciationName`, `identifiedFoodNameReason` 모두 한국어로 반환됩니다.
 
 실패 응답 예시:
 

@@ -29,6 +29,7 @@ from app.services.allergen_mapping import (
     map_allergy_code,
     map_ingredient_code,
 )
+from utils.json_extract import extract_json_object
 from user_features.i18n_summary import summarize_for_locale
 from user_features.payloads import build_extended_menu_payload
 
@@ -589,6 +590,85 @@ Input text:
     return translated.strip()
 
 
+def _parse_json_field_fallback(raw: str, field: str) -> str | None:
+    """잘린 JSON 응답에서 문자열 필드 값을 최대한 복구합니다."""
+    match = re.search(rf'"{re.escape(field)}"\s*:\s*"((?:[^"\\]|\\.)*)"', raw)
+    if match:
+        return match.group(1).strip()
+    match = re.search(rf'"{re.escape(field)}"\s*:\s*"([^"]+)', raw)
+    return match.group(1).strip() if match else None
+
+
+def pronounce_food_name_with_gemini(
+    client: genai.Client | None,
+    model_name: str,
+    target_lang: str,
+    korean_name: str,
+) -> str | None:
+    """한국어 음식명의 발음 표기만 반환합니다."""
+    if client is None:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    name = (korean_name or "").strip()
+    if not name:
+        return None
+    prompt = f"""Return one JSON object only:
+{{
+  "pronunciation": "pronunciation of the Korean dish name for speakers of {target_lang}"
+}}
+Korean dish name: {name}
+Do not translate the meaning. Only pronunciation/romanization."""
+    resp = client.models.generate_content(
+        model=model_name,
+        contents=[prompt],
+        config=types.GenerateContentConfig(
+            temperature=0.1,
+            max_output_tokens=128,
+            response_mime_type="application/json",
+        ),
+    )
+    raw = (getattr(resp, "text", "") or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        try:
+            parsed = extract_json_object(raw)
+        except ValueError:
+            recovered = _parse_json_field_fallback(raw, "pronunciation")
+            return recovered
+    if not isinstance(parsed, dict):
+        return _parse_json_field_fallback(raw, "pronunciation")
+    value = parsed.get("pronunciation")
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def localize_food_name_with_gemini(
+    client: genai.Client | None,
+    model_name: str,
+    target_lang: str,
+    korean_name: str,
+) -> dict[str, str | None]:
+    """한국어 음식명의 번역(의미)과 발음(표기)을 분리해 반환합니다."""
+    name = (korean_name or "").strip()
+    if not name:
+        return {"translation": None, "pronunciation": None}
+    if target_lang == "ko":
+        return {"translation": name, "pronunciation": name}
+    if client is None:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+
+    translation = translate_text_with_gemini(client, model_name, "ko", target_lang, name)
+    pronunciation: str | None = None
+    try:
+        pronunciation = pronounce_food_name_with_gemini(client, model_name, target_lang, name)
+    except Exception as exc:
+        logger.warning("pronunciation generation failed for %s (%s): %s", name, target_lang, exc)
+    if not pronunciation:
+        pronunciation = translation
+    return {"translation": translation, "pronunciation": pronunciation}
+
+
 __all__ = [
     "CrawlSourceUpstreamError",
     "auth_headers",
@@ -607,6 +687,8 @@ __all__ = [
     "run_weekly_crawl_once",
     "sanitize_url_for_log",
     "translate_text_with_gemini",
+    "localize_food_name_with_gemini",
+    "pronounce_food_name_with_gemini",
     "normalize_request_language",
     "validate_accept_language",
     "v1_error",

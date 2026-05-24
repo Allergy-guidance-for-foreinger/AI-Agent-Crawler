@@ -142,7 +142,11 @@ class PythonMenuImageAnalysisResultDto(BaseModel):
     )
     identifiedFoodTranslationName: Optional[str] = Field(
         default=None,
-        description="요청 language에 맞게 번역한 음식명",
+        description="요청 language로 번역한 음식명(의미)",
+    )
+    identifiedFoodPronunciationName: Optional[str] = Field(
+        default=None,
+        description="요청 language 기준 한국어 음식명 발음 표기",
     )
     identifiedFoodNameReason: Optional[str] = Field(
         default=None,

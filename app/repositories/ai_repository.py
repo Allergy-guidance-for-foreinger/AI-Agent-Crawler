@@ -8,6 +8,7 @@ from app.common.service_ops import (
     analyze_food_text,
     extract_menu_text_from_image,
     identify_food_from_image,
+    localize_food_name_with_gemini,
     map_allergy_code,
     map_ingredient_code,
     translate_text_with_gemini,
@@ -47,6 +48,15 @@ class AIRepository:
         text: str,
     ) -> str:
         return translate_text_with_gemini(client, model_name, source_lang, target_lang, text)
+
+    def localize_food_name(
+        self,
+        client: genai.Client | None,
+        model_name: str,
+        target_lang: str,
+        korean_name: str,
+    ) -> dict[str, str | None]:
+        return localize_food_name_with_gemini(client, model_name, target_lang, korean_name)
 
     def map_ingredient_code(self, token: str) -> str | None:
         return map_ingredient_code(token)

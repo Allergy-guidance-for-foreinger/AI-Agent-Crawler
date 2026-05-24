@@ -130,9 +130,11 @@ def test_python_menus_analyze_image_returns_i18n_fields(client: TestClient) -> N
     first = results[0]
     assert "identifiedFoodKoreanName" in first
     assert "identifiedFoodTranslationName" in first
+    assert "identifiedFoodPronunciationName" in first
     assert "identifiedFoodNameReason" in first
     assert "confidence" in first
     assert first.get("modelName") == "gemini"
     if first.get("identifiedFoodKoreanName"):
         assert first.get("identifiedFoodTranslationName")
+        assert first.get("identifiedFoodPronunciationName")
         assert first.get("identifiedFoodNameReason")
