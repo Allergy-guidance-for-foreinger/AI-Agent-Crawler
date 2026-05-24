@@ -167,3 +167,58 @@ def test_analyze_menus_splits_ingredients_allergies_and_spicy():
     assert allergy_codes == {"EGG"}
     assert "unmappedAllergenNames" not in row
     assert "analyzedAt" not in row
+
+
+def test_analyze_food_image_with_language_ko(monkeypatch):
+    ctx = _build_ctx()
+    svc = LiveService(ctx)
+
+    monkeypatch.setattr(
+        "app.services.live_service.analyze_food_image_bytes",
+        lambda *args, **kwargs: {
+            "음식명": "제육볶음",
+            "음식명_근거": "붉은 양념의 돼지고기 볶음입니다.",
+            "confidence": 0.81,
+        },
+    )
+
+    result = asyncio.run(
+        svc.analyze_food_image_with_language(b"img", "image/jpeg", "ko")
+    )
+    assert result["identifiedFoodKoreanName"] == "제육볶음"
+    assert result["identifiedFoodTranslationName"] == "제육볶음"
+    assert result["identifiedFoodPronunciationName"] == "제육볶음"
+    assert result["identifiedFoodNameReason"] == "붉은 양념의 돼지고기 볶음입니다."
+    assert result["confidence"] == 0.81
+
+
+def test_analyze_food_image_with_language_en(monkeypatch):
+    ctx = _build_ctx()
+
+    class StubAIRepo:
+        def localize_food_name(self, client, model_name, target_lang, korean_name):
+            return {
+                "translation": "Spicy stir-fried pork",
+                "pronunciation": "je-yuk-bokkeum",
+            }
+
+        def translate_text(self, client, model_name, source_lang, target_lang, text):
+            return "Stir-fried pork in red sauce."
+
+    svc = LiveService(ctx, ai_repo=StubAIRepo())
+    monkeypatch.setattr(
+        "app.services.live_service.analyze_food_image_bytes",
+        lambda *args, **kwargs: {
+            "음식명": "제육볶음",
+            "음식명_근거": "붉은 양념의 돼지고기 볶음입니다.",
+            "confidence": 0.81,
+        },
+    )
+
+    result = asyncio.run(
+        svc.analyze_food_image_with_language(b"img", "image/jpeg", "en")
+    )
+    assert result["identifiedFoodKoreanName"] == "제육볶음"
+    assert result["identifiedFoodTranslationName"] == "Spicy stir-fried pork"
+    assert result["identifiedFoodPronunciationName"] == "je-yuk-bokkeum"
+    assert result["identifiedFoodNameReason"] == "Stir-fried pork in red sauce."

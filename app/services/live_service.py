@@ -20,6 +20,12 @@ from app.services.menu_analysis_builder import (
     build_menu_analysis_success_result,
     strip_internal_analysis_fields,
 )
+from app.domain.image.agent import (
+    analyze_food_image_bytes,
+    extract_confidence_from_image_analysis,
+    extract_food_name_from_image_analysis,
+    extract_food_name_reason_from_image_analysis,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +98,60 @@ class LiveService:
             target_lang,
             text,
         )
+
+    async def analyze_food_image_with_language(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        language: str,
+    ) -> dict[str, Any]:
+        """음식 이미지를 분석하고 요청 언어에 맞는 식별 결과를 반환합니다."""
+        analysis = await asyncio.to_thread(
+            analyze_food_image_bytes,
+            self.client,
+            self.cfg.gemini_model,
+            image_bytes,
+            mime_type,
+            None,
+        )
+        korean_name = extract_food_name_from_image_analysis(analysis)
+        korean_reason = extract_food_name_reason_from_image_analysis(analysis)
+        confidence = extract_confidence_from_image_analysis(analysis)
+
+        async def _localize_name() -> dict[str, str | None]:
+            if not korean_name:
+                return {"translation": None, "pronunciation": None}
+            if language == "ko":
+                return {"translation": korean_name, "pronunciation": korean_name}
+            return await asyncio.to_thread(
+                self.ai_repo.localize_food_name,
+                self.client,
+                self.cfg.gemini_model,
+                language,
+                korean_name,
+            )
+
+        async def _maybe_translate_reason(text: str | None) -> str | None:
+            if not text:
+                return None
+            if language == "ko":
+                return text
+            return await asyncio.to_thread(self.translate_text, "ko", language, text)
+
+        localized_name, localized_reason = await asyncio.gather(
+            _localize_name(),
+            _maybe_translate_reason(korean_reason),
+        )
+
+        return {
+            "identifiedFoodKoreanName": korean_name,
+            "identifiedFoodTranslationName": localized_name.get("translation"),
+            "identifiedFoodPronunciationName": localized_name.get("pronunciation"),
+            "identifiedFoodNameReason": localized_reason,
+            "confidence": confidence,
+            "modelName": "gemini",
+            "modelVersion": self.cfg.gemini_model,
+        }
 
     def map_ingredient_code(self, token: str) -> str | None:
         return self.ai_repo.map_ingredient_code(token)
