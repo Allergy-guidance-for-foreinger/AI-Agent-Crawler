@@ -211,11 +211,14 @@ class TextListTranslationRequest(BaseModel):
     ingredients: list[IngredientTranslationInputDto] = Field(
         ...,
         min_length=1,
-        description="번역할 재료 목록",
+        max_length=100,
+        description="번역할 재료 목록 (최대 100개)",
     )
 
     @model_validator(mode="after")
     def validate_non_empty_ingredients(self):
+        if not self.sourceLang.strip() or not self.targetLang.strip():
+            raise ValueError("sourceLang/targetLang은 공백일 수 없습니다.")
         for item in self.ingredients:
             if not item.ingredientCode.strip() or not item.text.strip():
                 raise ValueError("ingredients의 ingredientCode/text는 비어 있을 수 없습니다.")

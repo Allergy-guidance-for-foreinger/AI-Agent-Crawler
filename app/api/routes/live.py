@@ -500,6 +500,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 },
             },
             400: {"model": ApiErrorResponse},
+            502: {"model": ApiErrorResponse},
             500: {
                 "model": ApiErrorResponse,
                 "content": {

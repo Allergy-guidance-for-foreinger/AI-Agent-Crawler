@@ -616,7 +616,10 @@ def translate_text_list_with_gemini(
     if not cleaned:
         raise RuntimeError("text 목록이 비어 있습니다.")
 
-    numbered = "\n".join(f"{i + 1}. {item}" for i, item in enumerate(cleaned))
+    # 비용/토큰 최적화: 중복 텍스트는 한 번만 번역한 뒤 원래 순서로 복원합니다.
+    unique_cleaned = list(dict.fromkeys(cleaned))
+
+    numbered = "\n".join(f"{i + 1}. {item}" for i, item in enumerate(unique_cleaned))
     prompt = f"""Translate each line from {source_lang} to {target_lang}.
 Preserve the same count and order as the input. Each item is a food ingredient or short label.
 
@@ -625,7 +628,7 @@ Return ONE JSON object only:
   "translatedTexts": ["...", "..."]
 }}
 
-Input ({len(cleaned)} items):
+Input ({len(unique_cleaned)} items):
 {numbered}
 """
     resp = client.models.generate_content(
@@ -641,25 +644,29 @@ Input ({len(cleaned)} items):
     if not raw:
         raise RuntimeError("모델 번역 응답이 비어 있습니다.")
 
-    translated: list[str] | None = None
+    translated_unique: list[str] | None = None
     try:
         parsed = json.loads(raw)
         if isinstance(parsed, dict):
             candidate = parsed.get("translatedTexts")
             if isinstance(candidate, list):
-                translated = [str(x).strip() for x in candidate]
+                if all(isinstance(x, str) for x in candidate):
+                    translated_unique = [x.strip() for x in candidate]
         elif isinstance(parsed, list):
-            translated = [str(x).strip() for x in parsed]
+            if all(isinstance(x, str) for x in parsed):
+                translated_unique = [x.strip() for x in parsed]
     except json.JSONDecodeError:
         pass
 
-    if translated is None or len(translated) != len(cleaned):
+    if translated_unique is None or len(translated_unique) != len(unique_cleaned):
         raise RuntimeError(
-            f"모델 번역 응답 개수가 요청과 일치하지 않습니다 (요청 {len(cleaned)}개)."
+            f"모델 번역 응답 개수가 요청과 일치하지 않습니다 (요청 {len(unique_cleaned)}개)."
         )
-    if any(not item for item in translated):
+    if any(not item for item in translated_unique):
         raise RuntimeError("모델 번역 응답에 빈 문자열이 포함되어 있습니다.")
-    return translated
+
+    mapping = dict(zip(unique_cleaned, translated_unique))
+    return [mapping[item] for item in cleaned]
 
 
 def translate_text_with_gemini(

@@ -114,9 +114,10 @@ def test_translate_text_list_with_gemini_parses_response() -> None:
 
 
 def test_translate_text_list_rejects_empty_item() -> None:
-    with pytest.raises(ValueError, match="비어"):
-        from app.schemas.api_models import TextListTranslationRequest
+    from pydantic import ValidationError
+    from app.schemas.api_models import TextListTranslationRequest
 
+    with pytest.raises(ValidationError, match="비어"):
         TextListTranslationRequest(
             sourceLang="ko",
             targetLang="en",
