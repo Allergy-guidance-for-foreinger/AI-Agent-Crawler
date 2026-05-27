@@ -600,6 +600,68 @@ JSON 객체 하나만 출력:
     return description
 
 
+def translate_text_list_with_gemini(
+    client: genai.Client | None,
+    model_name: str,
+    source_lang: str,
+    target_lang: str,
+    texts: list[str],
+) -> list[str]:
+    """문자열 목록을 한 번에 번역합니다. 입력 순서와 동일한 길이의 목록을 반환합니다."""
+    if client is None:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    cleaned = [t.strip() for t in texts if isinstance(t, str) and t.strip()]
+    if len(cleaned) != len(texts):
+        raise RuntimeError("text 목록에 빈 문자열이 포함되어 있습니다.")
+    if not cleaned:
+        raise RuntimeError("text 목록이 비어 있습니다.")
+
+    numbered = "\n".join(f"{i + 1}. {item}" for i, item in enumerate(cleaned))
+    prompt = f"""Translate each line from {source_lang} to {target_lang}.
+Preserve the same count and order as the input. Each item is a food ingredient or short label.
+
+Return ONE JSON object only:
+{{
+  "translatedTexts": ["...", "..."]
+}}
+
+Input ({len(cleaned)} items):
+{numbered}
+"""
+    resp = client.models.generate_content(
+        model=model_name,
+        contents=[prompt],
+        config=types.GenerateContentConfig(
+            temperature=0.1,
+            max_output_tokens=4096,
+            response_mime_type="application/json",
+        ),
+    )
+    raw = (getattr(resp, "text", "") or "").strip()
+    if not raw:
+        raise RuntimeError("모델 번역 응답이 비어 있습니다.")
+
+    translated: list[str] | None = None
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            candidate = parsed.get("translatedTexts")
+            if isinstance(candidate, list):
+                translated = [str(x).strip() for x in candidate]
+        elif isinstance(parsed, list):
+            translated = [str(x).strip() for x in parsed]
+    except json.JSONDecodeError:
+        pass
+
+    if translated is None or len(translated) != len(cleaned):
+        raise RuntimeError(
+            f"모델 번역 응답 개수가 요청과 일치하지 않습니다 (요청 {len(cleaned)}개)."
+        )
+    if any(not item for item in translated):
+        raise RuntimeError("모델 번역 응답에 빈 문자열이 포함되어 있습니다.")
+    return translated
+
+
 def translate_text_with_gemini(
     client: genai.Client | None,
     model_name: str,
@@ -735,6 +797,7 @@ __all__ = [
     "run_weekly_crawl_once",
     "sanitize_url_for_log",
     "describe_food_with_gemini",
+    "translate_text_list_with_gemini",
     "translate_text_with_gemini",
     "localize_food_name_with_gemini",
     "pronounce_food_name_with_gemini",

@@ -191,3 +191,21 @@ class PythonMenuTranslationResultDto(BaseModel):
 
 class PythonMenuTranslationResponse(BaseModel):
     results: list[PythonMenuTranslationResultDto]
+
+
+class TextListTranslationRequest(BaseModel):
+    """재료명 등 문자열 목록 일괄 번역 요청."""
+
+    sourceLang: str = Field(..., min_length=1, description="원문 언어 코드 (예: ko)")
+    targetLang: str = Field(..., min_length=1, description="번역 언어 코드 (예: en)")
+    text: list[str] = Field(
+        ...,
+        min_length=1,
+        description="번역할 문자열 목록 (재료명 등). 순서가 응답 순서와 동일합니다.",
+    )
+
+    @model_validator(mode="after")
+    def validate_non_empty_text_items(self):
+        if not all(isinstance(item, str) and item.strip() for item in self.text):
+            raise ValueError("text 목록의 각 항목은 비어 있을 수 없습니다.")
+        return self

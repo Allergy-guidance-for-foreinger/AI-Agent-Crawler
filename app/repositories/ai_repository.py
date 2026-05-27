@@ -12,6 +12,7 @@ from app.common.service_ops import (
     localize_food_name_with_gemini,
     map_allergy_code,
     map_ingredient_code,
+    translate_text_list_with_gemini,
     translate_text_with_gemini,
 )
 
@@ -52,6 +53,18 @@ class AIRepository:
         text: str,
     ) -> str:
         return translate_text_with_gemini(client, model_name, source_lang, target_lang, text)
+
+    def translate_text_list(
+        self,
+        client: genai.Client | None,
+        model_name: str,
+        source_lang: str,
+        target_lang: str,
+        texts: list[str],
+    ) -> list[str]:
+        return translate_text_list_with_gemini(
+            client, model_name, source_lang, target_lang, texts
+        )
 
     def localize_food_name(
         self,

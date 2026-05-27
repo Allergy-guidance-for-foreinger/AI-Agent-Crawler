@@ -25,6 +25,7 @@ from app.schemas.api_models import (
     PythonMenuOcrResponse,
     PythonMenuTranslationResponse,
     PythonMenuTranslationRequest,
+    TextListTranslationRequest,
 )
 from app.schemas.openapi_examples import (
     AI_KEY_MISSING_EXAMPLE,
@@ -38,6 +39,8 @@ from app.schemas.openapi_examples import (
     MENU_ANALYZE_SUCCESS_EXAMPLE,
     MENU_TRANSLATE_REQUEST_OPENAPI_EXAMPLES,
     MENU_TRANSLATE_SUCCESS_EXAMPLE,
+    TEXT_LIST_TRANSLATION_REQUEST_OPENAPI_EXAMPLES,
+    TEXT_LIST_TRANSLATION_SUCCESS_EXAMPLE,
     VALIDATION_ERROR_EXAMPLE,
     V1_INTERNAL_SERVER_ERROR_EXAMPLE,
 )
@@ -476,5 +479,68 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
             max_concurrency=cfg.ai_max_concurrent_tasks,
         )
         return v1_success({"results": results})
+
+    @router.post(
+        "/python/translations/list",
+        tags=["실사용 API"],
+        summary="문자열 목록 일괄 번역",
+        description="재료명 등 문자열 배열(text)을 번역해 동일 순서의 문자열 배열을 반환합니다.",
+        operation_id="translateTextListV1",
+        responses={
+            200: {
+                "description": "번역 성공 (data는 문자열 배열)",
+                "content": {
+                    "application/json": {
+                        "examples": {
+                            "재료목록": {"value": TEXT_LIST_TRANSLATION_SUCCESS_EXAMPLE},
+                        }
+                    }
+                },
+            },
+            400: {"model": ApiErrorResponse},
+            500: {
+                "model": ApiErrorResponse,
+                "content": {
+                    "application/json": {
+                        "examples": {"키미설정": {"value": AI_KEY_MISSING_EXAMPLE}},
+                    }
+                },
+            },
+        },
+    )
+    async def translate_text_list_v1(
+        request: Request,
+        payload: TextListTranslationRequest = Body(
+            ..., openapi_examples=TEXT_LIST_TRANSLATION_REQUEST_OPENAPI_EXAMPLES
+        ),
+    ):
+        try:
+            validate_accept_language(request.headers.get("Accept-Language"))
+        except ValueError as e:
+            return _v1_bad_request(str(e))
+        if client is None:
+            return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+        try:
+            translated = await asyncio.to_thread(
+                service.translate_text_list,
+                payload.sourceLang.strip(),
+                payload.targetLang.strip(),
+                [item.strip() for item in payload.text],
+            )
+        except RuntimeError as e:
+            if "GEMINI_API_KEY" in str(e):
+                return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+            return v1_error("PYM_500", str(e), status_code=500)
+        except (genai_errors.ClientError, genai_errors.ServerError):
+            logger.warning("upstream gemini translate list failed")
+            return v1_error(
+                "PYM_502",
+                "외부 AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해주세요.",
+                status_code=502,
+            )
+        except Exception:
+            logger.exception("unexpected translate text list error")
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
+        return {"success": True, "data": translated}
 
     return router

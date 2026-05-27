@@ -168,6 +168,23 @@ FREE_TRANSLATION_SUCCESS_EXAMPLE: dict = {
     },
 }
 
+# --- POST /api/v1/python/translations/list ---
+TEXT_LIST_TRANSLATION_REQUEST_OPENAPI_EXAMPLES: dict = {
+    "재료목록": {
+        "summary": "재료명 ko → en",
+        "value": {
+            "sourceLang": "ko",
+            "targetLang": "en",
+            "text": ["김치", "돼지고기", "두부", "대파"],
+        },
+    }
+}
+
+TEXT_LIST_TRANSLATION_SUCCESS_EXAMPLE: dict = {
+    "success": True,
+    "data": ["kimchi", "pork", "tofu", "green onion"],
+}
+
 # --- multipart (문서용 설명; Swagger는 폼 필드 설명으로 표시) ---
 MENU_BOARD_ANALYZE_RESPONSE_EXAMPLE: dict = {
     "success": True,
