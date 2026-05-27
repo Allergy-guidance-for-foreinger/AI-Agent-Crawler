@@ -43,7 +43,6 @@ def test_build_menu_analysis_failed_result_matches_pydantic_dto():
         menu_name="테스트",
         model_name="gemini",
         model_version="gemini-2.5-flash",
-        reason="503 UNAVAILABLE",
     )
     row = PythonMenuAnalysisResultDto.model_validate(raw)
     assert row.status == "FAILED"

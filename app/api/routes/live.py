@@ -20,6 +20,8 @@ from app.schemas.api_models import (
     PythonMenuImageAnalysisResponse,
     PythonMenuAnalysisRequest,
     PythonMenuAnalysisTargetDto,
+    PythonMenuDescribeRequest,
+    PythonMenuDescribeResponse,
     PythonMenuOcrResponse,
     PythonMenuTranslationResponse,
     PythonMenuTranslationRequest,
@@ -30,6 +32,8 @@ from app.schemas.openapi_examples import (
     MEAL_CRAWL_ERROR_UPSTREAM_EXAMPLE,
     MEAL_CRAWL_REQUEST_OPENAPI_EXAMPLES,
     MEAL_CRAWL_SUCCESS_EXAMPLE,
+    FOOD_DESCRIBE_REQUEST_OPENAPI_EXAMPLES,
+    FOOD_DESCRIBE_SUCCESS_EXAMPLE,
     MENU_ANALYZE_REQUEST_OPENAPI_EXAMPLES,
     MENU_ANALYZE_SUCCESS_EXAMPLE,
     MENU_TRANSLATE_REQUEST_OPENAPI_EXAMPLES,
@@ -89,7 +93,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
 
     @router.post(
         "/python/meals/crawl",
-        tags=["v1"],
+        tags=["실사용 API"],
         summary="식단 기간 조회/크롤링",
         description="학교/식당/기간 조건으로 식단을 조회하고 메뉴 목록을 표준 DTO로 반환합니다.",
         operation_id="crawlMealsV1",
@@ -170,7 +174,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
 
     @router.post(
         "/python/menus/analyze",
-        tags=["v1"],
+        tags=["실사용 API"],
         summary="메뉴 텍스트 AI 분석",
         description="메뉴명 리스트를 받아 재료 코드/신뢰도 추정 결과를 반환합니다.",
         operation_id="analyzeMenusV1",
@@ -220,6 +224,69 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
             return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
         results = await service.analyze_menus(payload.menus, max_concurrency=cfg.ai_max_concurrent_tasks)
         return v1_success({"results": results})
+
+    @router.post(
+        "/python/menus/describe",
+        tags=["실사용 API"],
+        summary="메뉴명 한국어 설명",
+        description="menuId·menuName을 받아 해당 음식을 한국어로 설명합니다.",
+        operation_id="describeMenuV1",
+        response_model=ApiSuccessResponse[PythonMenuDescribeResponse],
+        responses={
+            200: {
+                "description": "설명 생성 성공",
+                "content": {
+                    "application/json": {
+                        "examples": {
+                            "기본": {"value": FOOD_DESCRIBE_SUCCESS_EXAMPLE},
+                        }
+                    }
+                },
+            },
+            400: {"model": ApiErrorResponse},
+            500: {
+                "model": ApiErrorResponse,
+                "content": {
+                    "application/json": {
+                        "examples": {"키미설정": {"value": AI_KEY_MISSING_EXAMPLE}},
+                    }
+                },
+            },
+        },
+    )
+    async def describe_food_v1(
+        request: Request,
+        payload: PythonMenuDescribeRequest = Body(
+            ..., openapi_examples=FOOD_DESCRIBE_REQUEST_OPENAPI_EXAMPLES
+        ),
+    ):
+        try:
+            validate_accept_language(request.headers.get("Accept-Language"))
+        except ValueError as e:
+            return _v1_bad_request(str(e))
+        if client is None:
+            return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+        try:
+            result = await asyncio.to_thread(
+                service.describe_menu,
+                payload.menuId,
+                payload.menuName.strip(),
+            )
+        except RuntimeError as e:
+            if "GEMINI_API_KEY" in str(e):
+                return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+            return v1_error("PYM_500", str(e), status_code=500)
+        except (genai_errors.ClientError, genai_errors.ServerError):
+            logger.warning("upstream gemini describe failed")
+            return v1_error(
+                "PYM_502",
+                "외부 AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해주세요.",
+                status_code=502,
+            )
+        except Exception:
+            logger.exception("unexpected describe food error")
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
+        return v1_success(result)
 
     @router.post(
         "/python/menus/ocr",
@@ -309,7 +376,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
 
     @router.post(
         "/python/menus/analyze-image",
-        tags=["v1"],
+        tags=["실사용 API"],
         summary="이미지 기반 메뉴 AI 분석",
         description=(
             "음식 이미지에서 음식명·판단 근거·모델 신뢰도(confidence)를 반환합니다. "

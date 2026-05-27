@@ -7,10 +7,15 @@ import logging
 
 import requests
 from fastapi import APIRouter, Body, Request
+from google.genai import errors as genai_errors
 from pydantic import BaseModel, Field
 
 from app.config.runtime import API_V1_PREFIX, RuntimeContext
-from app.schemas.api_models import PythonMealCrawlRequest, PythonMenuAnalysisRequest
+from app.schemas.api_models import (
+    PythonMealCrawlRequest,
+    PythonMenuAnalysisRequest,
+    PythonMenuDescribeRequest,
+)
 from app.services.live_service import LiveService
 from app.common.service_ops import (
     CrawlSourceUpstreamError,
@@ -99,8 +104,46 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
         return {"results": results}
 
     @router.post(
+        "/menus/describe",
+        tags=["실사용 API"],
+        summary="메뉴명 한국어 설명 (unwrapped)",
+        operation_id="springNativeDescribeMenu",
+    )
+    async def describe_menu_native(
+        request: Request,
+        payload: PythonMenuDescribeRequest = Body(...),
+    ):
+        try:
+            validate_accept_language(request.headers.get("Accept-Language"))
+        except ValueError as e:
+            return v1_error("COM_001", str(e), status_code=400)
+        if client is None:
+            return v1_error("AI_001", "AI 서비스가 구성되지 않았습니다.", status_code=500)
+        try:
+            result = await asyncio.to_thread(
+                service.describe_menu,
+                payload.menuId,
+                payload.menuName.strip(),
+            )
+        except RuntimeError as e:
+            if "GEMINI_API_KEY" in str(e):
+                return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+            return v1_error("PYM_500", str(e), status_code=500)
+        except (genai_errors.ClientError, genai_errors.ServerError):
+            logger.warning("upstream gemini describe failed")
+            return v1_error(
+                "PYM_502",
+                "외부 AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해주세요.",
+                status_code=502,
+            )
+        except Exception:
+            logger.exception("unexpected describe menu error")
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
+        return result
+
+    @router.post(
         "/translations",
-        tags=["spring-native"],
+        tags=["실사용 API"],
         summary="자유 텍스트 번역",
         operation_id="springNativeTranslateText",
     )

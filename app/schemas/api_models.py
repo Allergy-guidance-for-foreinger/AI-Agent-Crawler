@@ -122,7 +122,6 @@ class PythonMenuAnalysisResultDto(BaseModel):
         le=5,
         description="매운맛 0(없음)~5. 실패·미추정 시 null",
     )
-    reason: Optional[str] = None
     modelName: str
     modelVersion: str
     ingredients: list[PythonMenuIngredientResultDto]
@@ -131,6 +130,19 @@ class PythonMenuAnalysisResultDto(BaseModel):
 
 class PythonMenuAnalysisResponse(BaseModel):
     results: list[PythonMenuAnalysisResultDto]
+
+
+class PythonMenuDescribeRequest(BaseModel):
+    menuId: int
+    menuName: str = Field(..., min_length=1, description="설명할 메뉴명")
+
+
+class PythonMenuDescribeResponse(BaseModel):
+    menuId: int
+    menuName: str
+    description: str = Field(..., description="음식에 대한 한국어 설명")
+    modelName: str
+    modelVersion: str
 
 
 class PythonMenuImageAnalysisResultDto(BaseModel):

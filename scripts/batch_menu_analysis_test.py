@@ -104,7 +104,6 @@ def main() -> None:
                 menu_name=name,
                 model_name="gemini",
                 model_version=model,
-                reason=str(e),
             )
         else:
             result = strip_internal_analysis_fields(
@@ -132,7 +131,6 @@ def main() -> None:
                 "unmappedAllergenNames": unmapped,
                 "spicyLevel": result.get("spicyLevel"),
                 "ingredientNames": [x.get("ingredientName") for x in ings],
-                "reason": result.get("reason"),
             }
         )
         mark = "OK" if result.get("status") == "SUCCESS" else "FAIL"

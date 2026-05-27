@@ -1,27 +1,41 @@
 # AI-Agent-Crawler
 
-Spring Boot 내부 호출 전용 Python API 서버입니다. 현재는 아래 API를 제공합니다.
+Spring Boot에서 호출하는 **Python API 서버**입니다. 연동 시에는 Swagger 태그 **`실사용 API`** 에 해당하는 엔드포인트만 쓰면 됩니다. OCR·메뉴 일괄 번역 등 **나머지 API는 필요할 때만** 사용하면 되고, 안 써도 서비스 동작에는 영향 없습니다.
 
-### Wrapped API (`/api/v1/python/...`)
+## 실사용 API (연동 권장)
 
-`{success, data}` 형태로 래핑된 응답을 반환합니다.
+| 메서드 | 경로 | 응답 | 용도 |
+|---|---|---|---|
+| `POST` | `/api/v1/python/meals/crawl` | Wrapped | 주간 식단 크롤링 |
+| `POST` | `/api/v1/python/menus/analyze` | Wrapped | 메뉴 재료·알레르기·매운맛(0~5) 분석 |
+| `POST` | `/api/v1/python/menus/analyze-image` | Wrapped | 음식 사진 → 한국어명·번역·발음·근거·confidence |
+| `POST` | `/api/v1/python/menus/describe` | Wrapped | menuId·menuName → 한국어 음식 설명 |
+| `POST` | `/api/v1/translations` | Unwrapped | 자유 텍스트 번역 (질문/안내 문구 등) |
 
-- `POST /api/v1/python/meals/crawl`
-- `POST /api/v1/python/menus/analyze`
-- `POST /api/v1/python/menus/ocr`
-- `POST /api/v1/python/menus/analyze-from-ocr`
-- `POST /api/v1/python/menus/analyze-image`
-- `POST /api/v1/python/menus/translate`
+- **Wrapped**: `{ "success": true, "data": { ... } }` 형태 (`/api/v1/python/...`)
+- **Unwrapped**: 본문에 결과만 반환 (`/api/v1/translations`)
 
-헬스(래핑 없음, Base URL 밖): `GET /health`
+Spring `WebClient`가 DTO를 바로 역직렬화하기 편하면, 아래 **동일 로직·Unwrapped** 경로를 대신 써도 됩니다.
 
-### Spring Native API (Unwrapped)
+| 실사용 (Wrapped) | 동일 기능 (Unwrapped) |
+|---|---|
+| `POST /api/v1/python/meals/crawl` | `POST /api/v1/crawl/meals` |
+| `POST /api/v1/python/menus/analyze` | `POST /api/v1/menus/analyze` |
+| `POST /api/v1/python/menus/describe` | `POST /api/v1/menus/describe` |
 
-Spring WebClient가 직접 파싱할 수 있도록 래핑 없이 결과를 반환합니다.
+헬스(래핑 없음, `/api/v1` 밖): `GET /health`
 
-- `POST /api/v1/crawl/meals`
-- `POST /api/v1/menus/analyze`
-- `POST /api/v1/translations`
+## 선택 API (필요 시만)
+
+아래는 프로토타입·보조 기능용입니다. **사용하지 않아도 됩니다.**
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| `POST` | `/api/v1/python/menus/ocr` | 메뉴판 이미지 OCR |
+| `POST` | `/api/v1/python/menus/analyze-from-ocr` | OCR 후 바로 메뉴 분석 |
+| `POST` | `/api/v1/python/menus/translate` | 저장된 메뉴명 일괄 번역 (배치) |
+
+Swagger: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) — **`실사용 API`** 그룹부터 확인하면 됩니다.
 
 ---
 
@@ -66,7 +80,7 @@ docker build -t ai-agent-crawler .
 docker run -d --env-file .env -p 8000:8000 ai-agent-crawler
 ```
 
-문서 확인:
+문서 확인 (서버 실행 후 **http** 로 접속):
 
 - Swagger: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - OpenAPI: [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
@@ -113,36 +127,17 @@ docker run -d --env-file .env -p 8000:8000 ai-agent-crawler
 
 ---
 
-## API 목록
-
-### Wrapped API
+## 헬스
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| `POST` | `/api/v1/python/meals/crawl` | 주간 식단 크롤링 |
-| `POST` | `/api/v1/python/menus/analyze` | 메뉴 재료·알레르기 코드·매운맛(0~5) 분석 |
-| `POST` | `/api/v1/python/menus/ocr` | 메뉴판 이미지 OCR 추출 |
-| `POST` | `/api/v1/python/menus/analyze-from-ocr` | 메뉴판 OCR 후 연속 분석 |
-| `POST` | `/api/v1/python/menus/analyze-image` | 음식 이미지 → 한국어명·번역·발음·근거(language)·confidence |
-| `POST` | `/api/v1/python/menus/translate` | 메뉴명 번역 |
-
-### Spring Native API (Unwrapped)
-
-| 메서드 | 경로 | 설명 |
-|---|---|---|
-| `POST` | `/api/v1/crawl/meals` | 식단 크롤링 (래핑 없이 반환) |
-| `POST` | `/api/v1/menus/analyze` | 메뉴 AI 분석 (래핑 없이 반환) |
-| `POST` | `/api/v1/translations` | 자유 텍스트 번역 |
-
-### 헬스
-
-| 메서드 | 경로 | 설명 |
-|---|---|---|
-| `GET` | `/health` | 프로세스 헬스(본문 `{"status":"ok"}` 형태, `/api/v1` 밖) |
+| `GET` | `/health` | 프로세스 헬스 (`{"status":"ok"}`, `/api/v1` 밖) |
 
 ---
 
-## 1) 식단 조회 API
+## 실사용 API 상세
+
+### 1) 식단 크롤링
 
 ### `POST /api/v1/python/meals/crawl`
 
@@ -246,9 +241,13 @@ public record PythonCrawledMenuDto(
 
 ---
 
-## 2) 메뉴 분석 API
+동일 로직 Unwrapped: `POST /api/v1/crawl/meals` — 요청/응답 본문은 `data` 없이 위 `data` 내용과 동일합니다.
 
-### `POST /api/v1/python/menus/analyze`
+---
+
+### 2) 메뉴 분석
+
+#### `POST /api/v1/python/menus/analyze`
 
 식단 저장 후 분석이 없는 메뉴만 Java 서버가 요청합니다. 응답 스키마는 코드 기준 `app/schemas/api_models.py`의 `PythonMenuAnalysisResultDto`와 동일합니다.
 
@@ -288,7 +287,6 @@ public record PythonMenuAnalysisResultDto(
         String menuName,
         PythonMenuAnalysisStatus status,
         Long spicyLevel,
-        String reason,
         String modelName,
         String modelVersion,
         List<PythonMenuIngredientResultDto> ingredients,
@@ -324,7 +322,6 @@ public record PythonMenuAllergyResultDto(
         "menuName": "김치찌개",
         "status": "SUCCESS",
         "spicyLevel": 3,
-        "reason": null,
         "modelName": "gemini",
         "modelVersion": "gemini-2.5-flash",
         "ingredients": [
@@ -348,57 +345,23 @@ public record PythonMenuAllergyResultDto(
 { "success": false, "code": "AI_001", "msg": "GEMINI_API_KEY is not set" }
 ```
 
+동일 로직 Unwrapped: `POST /api/v1/menus/analyze` — 응답은 `{ "results": [ ... ] }` 형태이며, 하위 호환용 `spicy_level`(snake_case)가 `spicyLevel`과 같이 올 수 있습니다.
+
 ---
 
-## 3) 메뉴 번역 API
+### 3) 메뉴명 한국어 설명
 
-### `POST /api/v1/python/menus/translate`
+#### `POST /api/v1/python/menus/describe`
 
-번역이 없는 메뉴만 Java 서버가 요청합니다.
-
-### 요청 DTO
-
-```java
-public record PythonMenuTranslationRequest(
-        List<PythonMenuTranslationTargetDto> menus,
-        List<String> targetLanguages
-) { }
-
-public record PythonMenuTranslationTargetDto(
-        Long menuId,
-        String menuName
-) { }
-```
+`menuId`·`menuName`을 주면 Gemini가 해당 음식을 **한국어로 2~4문장** 설명합니다. (재료·알레르기 분석과 별도 API)
 
 요청 예시:
 
 ```json
 {
-  "menus": [
-    { "menuId": 101, "menuName": "김치찌개" },
-    { "menuId": 102, "menuName": "돈까스" }
-  ],
-  "targetLanguages": ["en"]
+  "menuId": 101,
+  "menuName": "김치찌개"
 }
-```
-
-### 응답 DTO
-
-```java
-public record PythonMenuTranslationResponse(
-        List<PythonMenuTranslationResultDto> results
-) { }
-
-public record PythonMenuTranslationResultDto(
-        Long menuId,
-        String sourceName,
-        List<PythonTranslatedMenuNameDto> translations
-) { }
-
-public record PythonTranslatedMenuNameDto(
-        String langCode,
-        String translatedName
-) { }
 ```
 
 성공 응답 예시:
@@ -407,108 +370,50 @@ public record PythonTranslatedMenuNameDto(
 {
   "success": true,
   "data": {
-    "results": [
-      {
-        "menuId": 101,
-        "sourceName": "김치찌개",
-        "translations": [
-          { "langCode": "en", "translatedName": "Kimchi Stew" }
-        ]
-      },
-      {
-        "menuId": 102,
-        "sourceName": "돈까스",
-        "translations": [
-          { "langCode": "en", "translatedName": "Pork Cutlet" }
-        ]
-      }
-    ]
+    "menuId": 101,
+    "menuName": "김치찌개",
+    "description": "김치찌개는 잘 익은 김치와 돼지고기 또는 두부를 넣어 끓인 한국의 대표적인 찌개입니다. 얼큰하고 새콤한 맛이 특징입니다.",
+    "modelName": "gemini",
+    "modelVersion": "gemini-2.5-flash"
   }
 }
 ```
 
-실패 응답 예시:
-
-```json
-{ "success": false, "code": "AI_001", "msg": "GEMINI_API_KEY is not set" }
-```
+동일 로직 Unwrapped: `POST /api/v1/menus/describe` — `success`/`data` 없이 위 `data` 객체를 그대로 반환합니다.
 
 ---
 
-## 4) 메뉴판 OCR API
+### 4) 자유 텍스트 번역
 
-### `POST /api/v1/python/menus/ocr`
+#### `POST /api/v1/translations`
 
-메뉴판 이미지에서 OCR 방식으로 텍스트를 읽고 메뉴 목록을 추출합니다.
+UI 문구·챗봇 질문 등 **임의 텍스트**를 번역할 때 사용합니다. (메뉴 DB 일괄 번역은 선택 API `POST /api/v1/python/menus/translate` 참고)
 
-요청 형식:
-
-- `multipart/form-data`
-- `image`: 메뉴판 이미지 파일 (필수)
-
-성공 응답 예시:
+**요청:**
 
 ```json
 {
-  "success": true,
-  "data": {
-    "rawText": "중식\n김치찌개\n돈까스\n비빔밥",
-    "menus": [
-      { "menuName": "김치찌개" },
-      { "menuName": "돈까스" },
-      { "menuName": "비빔밥" }
-    ]
-  }
+  "sourceLang": "ko",
+  "targetLang": "en",
+  "text": "이 메뉴에 땅콩이 들어가나요?"
 }
 ```
 
----
-
-## 5) 메뉴판 OCR + 분석 API
-
-### `POST /api/v1/python/menus/analyze-from-ocr`
-
-메뉴판 OCR 결과를 바로 메뉴 분석으로 연결합니다.
-
-요청 형식:
-
-- `multipart/form-data`
-- `image`: 메뉴판 이미지 파일 (필수)
-- `startMenuId`: 응답 `menuId` 시작값 (선택, 기본값 `1`)
-
-성공 응답 예시:
+**응답 (200, Unwrapped):**
 
 ```json
 {
-  "success": true,
-  "data": {
-    "results": [
-      {
-        "menuId": 1,
-        "menuName": "김치찌개",
-        "status": "SUCCESS",
-        "reason": null,
-        "modelName": "gemini",
-        "modelVersion": "gemini-2.5-flash",
-        "analyzedAt": "2026-04-15T09:30:00",
-        "ingredients": [
-          { "ingredientCode": "PORK", "confidence": 0.92 }
-        ],
-        "allergies": [],
-        "spicyLevel": 2
-      }
-    ]
-  }
+  "translatedText": "Does this menu contain peanuts?"
 }
 ```
 
 ---
 
-## 6) 이미지 메뉴 분석 API
+### 5) 음식 이미지 분석
 
-### `POST /api/v1/python/menus/analyze-image`
+#### `POST /api/v1/python/menus/analyze-image`
 
-음식 사진에서 **한국어 음식명**, **요청 language 번역(의미)**, **요청 language 발음 표기**, **판단 근거(요청 language)**, **신뢰도(confidence)** 를 반환합니다.
+음식 사진에서 **한국어 음식명**, **요청 `language` 번역**, **발음 표기**, **판단 근거(요청 language)**, **confidence** 를 반환합니다.
 
 요청 형식:
 
@@ -549,8 +454,113 @@ public record PythonTranslatedMenuNameDto(
 { "success": false, "code": "AI_001", "msg": "GEMINI_API_KEY is not set" }
 ```
 
+---
+
+## 선택 API 상세
+
+### 메뉴판 OCR
+
+#### `POST /api/v1/python/menus/ocr`
+
+메뉴판 이미지에서 OCR 방식으로 텍스트를 읽고 메뉴 목록을 추출합니다.
+
+요청 형식:
+
+- `multipart/form-data`
+- `image`: 메뉴판 이미지 파일 (필수)
+
+성공 응답 예시:
+
 ```json
-{ "success": false, "code": "PYM_500", "msg": "..." }
+{
+  "success": true,
+  "data": {
+    "rawText": "중식\n김치찌개\n돈까스\n비빔밥",
+    "menus": [
+      { "menuName": "김치찌개" },
+      { "menuName": "돈까스" },
+      { "menuName": "비빔밥" }
+    ]
+  }
+}
+```
+
+---
+
+### 메뉴판 OCR + 분석
+
+#### `POST /api/v1/python/menus/analyze-from-ocr`
+
+메뉴판 OCR 결과를 바로 메뉴 분석으로 연결합니다.
+
+요청 형식:
+
+- `multipart/form-data`
+- `image`: 메뉴판 이미지 파일 (필수)
+- `startMenuId`: 응답 `menuId` 시작값 (선택, 기본값 `1`)
+
+성공 응답 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {
+        "menuId": 1,
+        "menuName": "김치찌개",
+        "status": "SUCCESS",
+        "modelName": "gemini",
+        "modelVersion": "gemini-2.5-flash",
+        "analyzedAt": "2026-04-15T09:30:00",
+        "ingredients": [
+          { "ingredientCode": "PORK", "confidence": 0.92 }
+        ],
+        "allergies": [],
+        "spicyLevel": 2
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 메뉴 일괄 번역 (배치)
+
+#### `POST /api/v1/python/menus/translate`
+
+저장된 메뉴 목록을 언어별로 번역할 때만 사용합니다. 자유 문장 번역은 실사용 API `POST /api/v1/translations` 를 사용하세요.
+
+요청 예시:
+
+```json
+{
+  "menus": [
+    { "menuId": 101, "menuName": "김치찌개" },
+    { "menuId": 102, "menuName": "돈까스" }
+  ],
+  "targetLanguages": ["en"]
+}
+```
+
+성공 응답 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      {
+        "menuId": 101,
+        "sourceName": "김치찌개",
+        "translations": [
+          { "langCode": "en", "translatedName": "Kimchi Stew" }
+        ]
+      }
+    ]
+  }
+}
 ```
 
 ---
@@ -774,115 +784,3 @@ curl -sS -X POST "https://api.your-domain.com/api/v1/python/menus/analyze" \
 - `AI_001` 응답: `GEMINI_API_KEY` 누락/오타
 - OCR 결과 빈 값: 업로드 이미지 품질/해상도 확인, 메뉴판 crop 후 재시도
 - 크롤링 차단: `CRAWL_SOURCE_ALLOWLIST` 설정값과 실제 도메인 일치 확인
-
----
-
-## Spring Native API 상세
-
-Spring WebClient가 직접 파싱할 수 있도록 `{success, data}` 래핑 없이 결과를 반환합니다.
-
-### `POST /api/v1/crawl/meals`
-
-식단 크롤링 (Wrapped 버전과 동일한 로직, 응답만 unwrapped).
-
-**요청:**
-
-```json
-{
-  "schoolName": "금오공과대학교",
-  "cafeteriaName": "일품식당",
-  "sourceUrl": "https://www.kumoh.ac.kr/ko/restaurant01.do",
-  "startDate": "2026-05-05",
-  "endDate": "2026-05-11"
-}
-```
-
-**응답 (200):**
-
-```json
-{
-  "schoolName": "금오공과대학교",
-  "cafeteriaName": "일품식당",
-  "sourceUrl": "https://www.kumoh.ac.kr/ko/restaurant01.do",
-  "startDate": "2026-05-05",
-  "endDate": "2026-05-11",
-  "meals": [
-    {
-      "mealDate": "2026-05-05",
-      "mealType": "BREAKFAST",
-      "menus": [
-        {"cornerName": "조식", "displayOrder": 1, "menuName": "다찬스페셜정식도시락"}
-      ]
-    },
-    {
-      "mealDate": "2026-05-05",
-      "mealType": "LUNCH",
-      "menus": [
-        {"cornerName": "일품요리", "displayOrder": 1, "menuName": "김치우동"},
-        {"cornerName": "일품요리", "displayOrder": 2, "menuName": "목살필라프"},
-        {"cornerName": "일품요리", "displayOrder": 3, "menuName": "참치마요덮밥"}
-      ]
-    }
-  ]
-}
-```
-
----
-
-### `POST /api/v1/menus/analyze`
-
-메뉴 AI 분석 (Wrapped 버전과 동일한 로직, 응답만 unwrapped). 응답 JSON에는 하위 호환용으로 `spicy_level`(snake_case) 키가 `spicyLevel`과 동일 값으로 **추가로** 포함될 수 있습니다. 신규 연동은 `spicyLevel`·`allergies`를 기준으로 하면 됩니다.
-
-**요청:**
-
-```json
-{
-  "menus": [{"menuId": 1, "menuName": "김치찌개"}]
-}
-```
-
-**응답 (200):**
-
-```json
-{
-  "results": [
-    {
-      "menuId": 1,
-      "menuName": "김치찌개",
-      "status": "SUCCESS",
-      "reason": null,
-      "modelName": "gemini",
-      "modelVersion": "gemini-2.5-flash",
-      "analyzedAt": "2026-05-12T12:00:00",
-      "ingredients": [{"ingredientCode": "PORK", "confidence": 0.95}],
-      "allergies": [{"allergyCode": "SOYBEAN", "confidence": 0.85}],
-      "spicyLevel": 3,
-      "spicy_level": 3
-    }
-  ]
-}
-```
-
----
-
-### `POST /api/v1/translations`
-
-자유 텍스트 번역.
-
-**요청:**
-
-```json
-{
-  "sourceLang": "ko",
-  "targetLang": "en",
-  "text": "이 메뉴에 땅콩이 들어가나요?"
-}
-```
-
-**응답 (200):**
-
-```json
-{
-  "translatedText": "Does this menu contain peanuts?"
-}
-```

@@ -113,7 +113,6 @@ Spring Boot에서 Python 서버를 호출할 때 바로 참고할 수 있는 최
         "menuId": 101,
         "menuName": "참치김치찌개",
         "status": "COMPLETED",
-        "reason": null,
         "modelName": "gemini",
         "modelVersion": "gemini-2.5-flash-lite",
         "analyzedAt": "2026-04-24T10:00:00+09:00",

@@ -99,6 +99,20 @@ class LiveService:
             text,
         )
 
+    def describe_menu(self, menu_id: int, menu_name: str) -> dict[str, Any]:
+        description = self.ai_repo.describe_food(
+            self.client,
+            self.cfg.gemini_model,
+            menu_name,
+        )
+        return {
+            "menuId": menu_id,
+            "menuName": menu_name,
+            "description": description,
+            "modelName": "gemini",
+            "modelVersion": self.cfg.gemini_model,
+        }
+
     async def analyze_food_image_with_language(
         self,
         image_bytes: bytes,
@@ -208,7 +222,6 @@ class LiveService:
                     menu_name=target.menuName,
                     model_name="gemini",
                     model_version=self.cfg.gemini_model,
-                    reason=str(e),
                 )
 
         return await asyncio.gather(*[_analyze_single_menu(target) for target in menus])
