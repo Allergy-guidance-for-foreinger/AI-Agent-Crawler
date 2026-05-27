@@ -139,17 +139,15 @@ def analyze_food_text(client: genai.Client | None, model_name: str, name: str) -
 
 한국 식품의약품안전처 알레르기 유발물질 표시 대상 기준으로 분석합니다.
 
-Output ONE JSON object only, and write explanatory text in English:
+다음 JSON 객체 하나만 출력:
 {{
   "foodNameKo": "음식 이름(한국어)",
-  "reasonKo": "Why you classified this dish that way (ingredients/allergens/spiciness) in 1-3 English sentences.",
   "ingredientsKo": ["주요 재료를 빠짐없이 한국어로. 고기·해산물·채소·양념·부재료 포함"],
   "allergensKo": [{{"name": "표준 알레르기명(아래 목록 중 하나)", "reason": "함유·가능 근거"}}],
   "spicyLevel": 2
 }}
 
 규칙:
-- reasonKo: summarize in English the key reasons for ingredientsKo/allergensKo/spicyLevel (1~3 sentences).
 - ingredientsKo: 메뉴에 들어갈 수 있는 주재료를 모두 나열(알레르기 유발 재료도 포함).
 - allergensKo.name: 아래 표준명 문자열 그대로만 사용. 목록에 없는 이름(생선, 어류, 콩 등) 금지.
   표준명: {mfds_labels}

@@ -93,7 +93,6 @@ public record MenuAnalyzeResponse(
         Long menuId,
         String menuName,
         String status,
-        String reason,
         String modelName,
         String modelVersion,
         String analyzedAt,

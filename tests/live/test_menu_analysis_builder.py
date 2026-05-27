@@ -21,7 +21,6 @@ def test_build_menu_analysis_success_result_matches_pydantic_dto():
             analysis={
                 "ingredientsKo": ["김치", "돼지고기"],
                 "allergensKo": [{"name": "대두", "reason": "두부"}],
-                "reasonKo": "테스트 이유",
                 "spicyLevel": 3,
             },
         )
@@ -34,7 +33,6 @@ def test_build_menu_analysis_success_result_matches_pydantic_dto():
     assert row.ingredients[1].ingredientCode == "PORK"
     assert row.allergies[0].allergyCode == "PORK"
     assert row.spicyLevel == 3
-    assert row.reason == "테스트 이유"
     assert "analyzedAt" not in raw
     assert "unmappedAllergenNames" not in raw
 
@@ -45,7 +43,6 @@ def test_build_menu_analysis_failed_result_matches_pydantic_dto():
         menu_name="테스트",
         model_name="gemini",
         model_version="gemini-2.5-flash",
-        reason="503 UNAVAILABLE",
     )
     row = PythonMenuAnalysisResultDto.model_validate(raw)
     assert row.status == "FAILED"

@@ -222,7 +222,6 @@ class LiveService:
                     menu_name=target.menuName,
                     model_name="gemini",
                     model_version=self.cfg.gemini_model,
-                    reason=str(e),
                 )
 
         return await asyncio.gather(*[_analyze_single_menu(target) for target in menus])

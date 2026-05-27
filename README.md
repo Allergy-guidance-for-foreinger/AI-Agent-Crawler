@@ -287,7 +287,6 @@ public record PythonMenuAnalysisResultDto(
         String menuName,
         PythonMenuAnalysisStatus status,
         Long spicyLevel,
-        String reason,
         String modelName,
         String modelVersion,
         List<PythonMenuIngredientResultDto> ingredients,
@@ -308,7 +307,6 @@ public record PythonMenuAllergyResultDto(
 
 - `status`: 성공 시 `SUCCESS`, 예외 시 `FAILED`.
 - `spicyLevel`: 매운맛 **0~5** 정수 또는 `null`. **0**=매운맛 없음(밥 등), **null**=실패·미추정.
-- `reason`: 성공 시 영어로 분류 근거(1~3문장), 실패·미제공 시 `null`.
 - `ingredients`: 추정 재료 목록(`ingredientName` 필수, `ingredientCode`는 매핑 성공 시만).
 - `allergies`: 알레르기 유발 추정 코드 목록(`allergyCode`). 분석 실패 시 빈 배열.
 
@@ -324,7 +322,6 @@ public record PythonMenuAllergyResultDto(
         "menuName": "김치찌개",
         "status": "SUCCESS",
         "spicyLevel": 3,
-        "reason": "Kimchi stew is a spicy Korean dish with fermented cabbage and pork.",
         "modelName": "gemini",
         "modelVersion": "gemini-2.5-flash",
         "ingredients": [
@@ -513,7 +510,6 @@ UI 문구·챗봇 질문 등 **임의 텍스트**를 번역할 때 사용합니�
         "menuId": 1,
         "menuName": "김치찌개",
         "status": "SUCCESS",
-        "reason": null,
         "modelName": "gemini",
         "modelVersion": "gemini-2.5-flash",
         "analyzedAt": "2026-04-15T09:30:00",

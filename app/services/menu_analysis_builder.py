@@ -34,15 +34,11 @@ def build_menu_analysis_success_result(
     spicy = parse_spicy_level(
         analysis.get("spicyLevel") if analysis.get("spicyLevel") is not None else analysis.get("spicy_level")
     )
-    reason = analysis.get("reasonKo") or analysis.get("reason")
-    if not isinstance(reason, str) or not reason.strip():
-        reason = None
     return {
         "menuId": menu_id,
         "menuName": menu_name,
         "status": "SUCCESS",
         "spicyLevel": spicy,
-        "reason": reason,
         "modelName": model_name,
         "modelVersion": model_version,
         "ingredients": ingredient_results,
@@ -57,7 +53,6 @@ def build_menu_analysis_failed_result(
     menu_name: str,
     model_name: str,
     model_version: str,
-    reason: str,
 ) -> dict[str, Any]:
     """메뉴 분석 실패 결과 DTO dict."""
     return {
@@ -65,7 +60,6 @@ def build_menu_analysis_failed_result(
         "menuName": menu_name,
         "status": "FAILED",
         "spicyLevel": None,
-        "reason": reason[:300],
         "modelName": model_name,
         "modelVersion": model_version,
         "ingredients": [],

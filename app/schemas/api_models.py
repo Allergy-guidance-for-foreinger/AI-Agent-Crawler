@@ -122,7 +122,6 @@ class PythonMenuAnalysisResultDto(BaseModel):
         le=5,
         description="매운맛 0(없음)~5. 실패·미추정 시 null",
     )
-    reason: Optional[str] = None
     modelName: str
     modelVersion: str
     ingredients: list[PythonMenuIngredientResultDto]
