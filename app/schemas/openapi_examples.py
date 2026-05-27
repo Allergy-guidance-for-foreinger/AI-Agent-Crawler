@@ -97,6 +97,28 @@ AI_KEY_MISSING_EXAMPLE: dict = {
     "msg": "GEMINI_API_KEY is not set",
 }
 
+# --- POST /api/v1/python/menus/describe ---
+FOOD_DESCRIBE_REQUEST_OPENAPI_EXAMPLES: dict = {
+    "기본": {
+        "summary": "김치찌개 설명",
+        "value": {"menuId": 101, "menuName": "김치찌개"},
+    }
+}
+
+FOOD_DESCRIBE_SUCCESS_EXAMPLE: dict = {
+    "success": True,
+    "data": {
+        "menuId": 101,
+        "menuName": "김치찌개",
+        "description": (
+            "김치찌개는 잘 익은 김치와 돼지고기 또는 두부를 넣어 끓인 한국의 대표적인 찌개입니다. "
+            "얼큰하고 새콤한 맛이 특징이며, 밥과 함께 자주 먹습니다."
+        ),
+        "modelName": "gemini",
+        "modelVersion": "gemini-2.5-flash",
+    },
+}
+
 # --- POST /api/v1/python/menus/translate ---
 MENU_TRANSLATE_REQUEST_OPENAPI_EXAMPLES: dict = {
     "기본": {

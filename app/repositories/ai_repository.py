@@ -6,6 +6,7 @@ from google import genai
 
 from app.common.service_ops import (
     analyze_food_text,
+    describe_food_with_gemini,
     extract_menu_text_from_image,
     identify_food_from_image,
     localize_food_name_with_gemini,
@@ -38,6 +39,9 @@ class AIRepository:
         mime_type: str,
     ) -> dict:
         return extract_menu_text_from_image(client, model_name, image_bytes, mime_type)
+
+    def describe_food(self, client: genai.Client | None, model_name: str, food_name: str) -> str:
+        return describe_food_with_gemini(client, model_name, food_name)
 
     def translate_text(
         self,

@@ -133,6 +133,19 @@ class PythonMenuAnalysisResponse(BaseModel):
     results: list[PythonMenuAnalysisResultDto]
 
 
+class PythonMenuDescribeRequest(BaseModel):
+    menuId: int
+    menuName: str = Field(..., min_length=1, description="설명할 메뉴명")
+
+
+class PythonMenuDescribeResponse(BaseModel):
+    menuId: int
+    menuName: str
+    description: str = Field(..., description="음식에 대한 한국어 설명")
+    modelName: str
+    modelVersion: str
+
+
 class PythonMenuImageAnalysisResultDto(BaseModel):
     """`POST /python/menus/analyze-image` 전용 응답 항목."""
 

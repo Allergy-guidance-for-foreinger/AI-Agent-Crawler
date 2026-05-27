@@ -554,6 +554,49 @@ def _validate_source_url(source_url: str) -> None:
             raise RuntimeError("sourceUrl이 사설/내부/예약 IP로 해석되어 차단되었습니다.")
 
 
+def describe_food_with_gemini(
+    client: genai.Client | None,
+    model_name: str,
+    food_name: str,
+) -> str:
+    """음식명을 받아 한국어로 음식 설명을 생성합니다."""
+    if client is None:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    prompt = f"""음식 이름: {food_name}
+
+이 음식을 처음 접하는 사람에게 설명하는 **한국어** 문장 2~4개를 작성하세요.
+무엇인지, 대표 재료, 맛·식감을 자연스럽게 설명합니다.
+알레르기 경고나 분류 코드는 넣지 마세요.
+
+JSON 객체 하나만 출력:
+{{
+  "description": "한국어 설명..."
+}}
+"""
+    resp = client.models.generate_content(
+        model=model_name,
+        contents=[prompt],
+        config=types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=1024,
+            response_mime_type="application/json",
+        ),
+    )
+    raw = (getattr(resp, "text", "") or "").strip()
+    if not raw:
+        raise RuntimeError("모델 응답이 비어 있습니다.")
+    parsed = json.loads(raw)
+    if not isinstance(parsed, dict):
+        raise RuntimeError("모델 응답 JSON이 객체 형태가 아닙니다.")
+    description = parsed.get("description") or parsed.get("descriptionKo")
+    if not isinstance(description, str) or not description.strip():
+        fallback = _parse_json_field_fallback(raw, "description")
+        if fallback:
+            return fallback.strip()
+        raise RuntimeError("모델 응답에 description이 없습니다.")
+    return description.strip()
+
+
 def translate_text_with_gemini(
     client: genai.Client | None,
     model_name: str,
@@ -688,6 +731,7 @@ __all__ = [
     "post_json",
     "run_weekly_crawl_once",
     "sanitize_url_for_log",
+    "describe_food_with_gemini",
     "translate_text_with_gemini",
     "localize_food_name_with_gemini",
     "pronounce_food_name_with_gemini",

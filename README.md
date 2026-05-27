@@ -9,6 +9,7 @@ Spring Boot에서 호출하는 **Python API 서버**입니다. 연동 시에는 
 | `POST` | `/api/v1/python/meals/crawl` | Wrapped | 주간 식단 크롤링 |
 | `POST` | `/api/v1/python/menus/analyze` | Wrapped | 메뉴 재료·알레르기·매운맛(0~5) 분석 |
 | `POST` | `/api/v1/python/menus/analyze-image` | Wrapped | 음식 사진 → 한국어명·번역·발음·근거·confidence |
+| `POST` | `/api/v1/python/menus/describe` | Wrapped | menuId·menuName → 한국어 음식 설명 |
 | `POST` | `/api/v1/translations` | Unwrapped | 자유 텍스트 번역 (질문/안내 문구 등) |
 
 - **Wrapped**: `{ "success": true, "data": { ... } }` 형태 (`/api/v1/python/...`)
@@ -20,6 +21,7 @@ Spring `WebClient`가 DTO를 바로 역직렬화하기 편하면, 아래 **동�
 |---|---|
 | `POST /api/v1/python/meals/crawl` | `POST /api/v1/crawl/meals` |
 | `POST /api/v1/python/menus/analyze` | `POST /api/v1/menus/analyze` |
+| `POST /api/v1/python/menus/describe` | `POST /api/v1/menus/describe` |
 
 헬스(래핑 없음, `/api/v1` 밖): `GET /health`
 
@@ -350,7 +352,41 @@ public record PythonMenuAllergyResultDto(
 
 ---
 
-### 3) 자유 텍스트 번역
+### 3) 메뉴명 한국어 설명
+
+#### `POST /api/v1/python/menus/describe`
+
+`menuId`·`menuName`을 주면 Gemini가 해당 음식을 **한국어로 2~4문장** 설명합니다. (재료·알레르기 분석과 별도 API)
+
+요청 예시:
+
+```json
+{
+  "menuId": 101,
+  "menuName": "김치찌개"
+}
+```
+
+성공 응답 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "menuId": 101,
+    "menuName": "김치찌개",
+    "description": "김치찌개는 잘 익은 김치와 돼지고기 또는 두부를 넣어 끓인 한국의 대표적인 찌개입니다. 얼큰하고 새콤한 맛이 특징입니다.",
+    "modelName": "gemini",
+    "modelVersion": "gemini-2.5-flash"
+  }
+}
+```
+
+동일 로직 Unwrapped: `POST /api/v1/menus/describe` — `success`/`data` 없이 위 `data` 객체를 그대로 반환합니다.
+
+---
+
+### 4) 자유 텍스트 번역
 
 #### `POST /api/v1/translations`
 
@@ -376,7 +412,7 @@ UI 문구·챗봇 질문 등 **임의 텍스트**를 번역할 때 사용합니�
 
 ---
 
-### 4) 음식 이미지 분석
+### 5) 음식 이미지 분석
 
 #### `POST /api/v1/python/menus/analyze-image`
 
