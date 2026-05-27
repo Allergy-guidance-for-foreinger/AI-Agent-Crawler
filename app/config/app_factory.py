@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config.runtime import API_V1_PREFIX, RuntimeContext
 from app.api.routes.live import create_v1_router
@@ -54,7 +55,10 @@ def create_app(ctx: RuntimeContext) -> FastAPI:
                     pass
 
     openapi_tags = [
-        {"name": "v1", "description": "식단 조회/메뉴 분석/메뉴 번역 API"},
+        {"name": "실사용 API", "description": "Spring Boot 연동 시 주로 사용하는 API"},
+        {"name": "v1", "description": "Wrapped API (/api/v1/python/...)"},
+        {"name": "spring-native", "description": "Unwrapped API (/api/v1/crawl|menus|translations)"},
+        {"name": "ops", "description": "헬스체크"},
     ]
     app = FastAPI(
         title="AI-Agent-Crawler Live Service",
@@ -65,6 +69,14 @@ def create_app(ctx: RuntimeContext) -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_tags=openapi_tags,
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.exception_handler(RequestValidationError)
