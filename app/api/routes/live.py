@@ -26,6 +26,7 @@ from app.schemas.api_models import (
     PythonMenuTranslationResponse,
     PythonMenuTranslationRequest,
     TextListTranslationRequest,
+    TextListTranslationResponse,
 )
 from app.schemas.openapi_examples import (
     AI_KEY_MISSING_EXAMPLE,
@@ -484,11 +485,12 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         "/python/translations/list",
         tags=["실사용 API"],
         summary="문자열 목록 일괄 번역",
-        description="재료명 등 문자열 배열(text)을 번역해 동일 순서의 문자열 배열을 반환합니다.",
+        description="재료 목록(ingredientCode, text)을 번역해 results 배열로 반환합니다.",
         operation_id="translateTextListV1",
+        response_model=ApiSuccessResponse[TextListTranslationResponse],
         responses={
             200: {
-                "description": "번역 성공 (data는 문자열 배열)",
+                "description": "번역 성공",
                 "content": {
                     "application/json": {
                         "examples": {
@@ -525,7 +527,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 service.translate_text_list,
                 payload.sourceLang.strip(),
                 payload.targetLang.strip(),
-                [item.strip() for item in payload.text],
+                [item.text.strip() for item in payload.ingredients],
             )
         except RuntimeError as e:
             if "GEMINI_API_KEY" in str(e):
@@ -541,6 +543,13 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         except Exception:
             logger.exception("unexpected translate text list error")
             return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
-        return {"success": True, "data": translated}
+        results = [
+            {
+                "ingredientCode": payload.ingredients[idx].ingredientCode.strip(),
+                "translatedText": translated[idx],
+            }
+            for idx in range(len(payload.ingredients))
+        ]
+        return v1_success({"results": results})
 
     return router

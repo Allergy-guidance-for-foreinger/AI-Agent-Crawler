@@ -193,19 +193,34 @@ class PythonMenuTranslationResponse(BaseModel):
     results: list[PythonMenuTranslationResultDto]
 
 
+class IngredientTranslationInputDto(BaseModel):
+    ingredientCode: str = Field(..., min_length=1, description="원문 재료 식별 코드")
+    text: str = Field(..., min_length=1, description="번역할 원문 텍스트")
+
+
+class IngredientTranslationResultDto(BaseModel):
+    ingredientCode: str = Field(..., min_length=1, description="요청과 동일한 재료 식별 코드")
+    translatedText: str = Field(..., min_length=1, description="번역 결과 텍스트")
+
+
 class TextListTranslationRequest(BaseModel):
-    """재료명 등 문자열 목록 일괄 번역 요청."""
+    """재료명 목록 일괄 번역 요청."""
 
     sourceLang: str = Field(..., min_length=1, description="원문 언어 코드 (예: ko)")
     targetLang: str = Field(..., min_length=1, description="번역 언어 코드 (예: en)")
-    text: list[str] = Field(
+    ingredients: list[IngredientTranslationInputDto] = Field(
         ...,
         min_length=1,
-        description="번역할 문자열 목록 (재료명 등). 순서가 응답 순서와 동일합니다.",
+        description="번역할 재료 목록",
     )
 
     @model_validator(mode="after")
-    def validate_non_empty_text_items(self):
-        if not all(isinstance(item, str) and item.strip() for item in self.text):
-            raise ValueError("text 목록의 각 항목은 비어 있을 수 없습니다.")
+    def validate_non_empty_ingredients(self):
+        for item in self.ingredients:
+            if not item.ingredientCode.strip() or not item.text.strip():
+                raise ValueError("ingredients의 ingredientCode/text는 비어 있을 수 없습니다.")
         return self
+
+
+class TextListTranslationResponse(BaseModel):
+    results: list[IngredientTranslationResultDto]

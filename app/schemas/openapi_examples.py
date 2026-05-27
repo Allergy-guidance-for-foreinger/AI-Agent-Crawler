@@ -175,14 +175,22 @@ TEXT_LIST_TRANSLATION_REQUEST_OPENAPI_EXAMPLES: dict = {
         "value": {
             "sourceLang": "ko",
             "targetLang": "en",
-            "text": ["김치", "돼지고기", "두부", "대파"],
+            "ingredients": [
+                {"ingredientCode": "AI_AB12CD34", "text": "베이컨"},
+                {"ingredientCode": "AI_CD34EF56", "text": "소고기 패티"},
+            ],
         },
     }
 }
 
 TEXT_LIST_TRANSLATION_SUCCESS_EXAMPLE: dict = {
     "success": True,
-    "data": ["kimchi", "pork", "tofu", "green onion"],
+    "data": {
+        "results": [
+            {"ingredientCode": "AI_AB12CD34", "translatedText": "Bacon"},
+            {"ingredientCode": "AI_CD34EF56", "translatedText": "Beef patty"},
+        ]
+    },
 }
 
 # --- multipart (문서용 설명; Swagger는 폼 필드 설명으로 표시) ---

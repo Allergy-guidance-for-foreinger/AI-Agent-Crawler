@@ -12,7 +12,7 @@ Spring Boot에서 호출하는 **Python API 서버**입니다. 연동 시에는 
 | `POST` | `/api/v1/python/menus/describe` | Wrapped | menuId·menuName → 한국어 음식 설명 |
 | `POST` | `/api/v1/translations` | Unwrapped | 자유 텍스트 번역 (질문/안내 문구 등) |
 | `POST` | `/api/v1/python/translations/list` | Wrapped | 재료명 등 문자열 **목록** 일괄 번역 |
-| `POST` | `/api/v1/translations/list` | Unwrapped | 동일 (응답 본문이 문자열 배열) |
+| `POST` | `/api/v1/translations/list` | Unwrapped | 동일 (응답 본문이 `results` 객체) |
 
 - **Wrapped**: `{ "success": true, "data": { ... } }` 형태 (`/api/v1/python/...`)
 - **Unwrapped**: 본문에 결과만 반환 (`/api/v1/translations`)
@@ -410,9 +410,9 @@ UI 문구·챗봇 질문 등 **임의 텍스트**를 번역할 때 사용합니�
 }
 ```
 
-#### `POST /api/v1/translations/list` (문자열 목록)
+#### `POST /api/v1/translations/list` (재료 목록)
 
-재료명처럼 **여러 문자열**을 한 번에 번역합니다. `text`는 문자열 배열이고, 응답도 **같은 순서의 문자열 배열**입니다.
+`ingredientCode`가 붙은 재료 목록을 한 번에 번역합니다.
 
 **요청:**
 
@@ -420,14 +420,22 @@ UI 문구·챗봇 질문 등 **임의 텍스트**를 번역할 때 사용합니�
 {
   "sourceLang": "ko",
   "targetLang": "en",
-  "text": ["김치", "돼지고기", "두부", "대파"]
+  "ingredients": [
+    { "ingredientCode": "AI_AB12CD34", "text": "베이컨" },
+    { "ingredientCode": "AI_CD34EF56", "text": "소고기 패티" }
+  ]
 }
 ```
 
 **응답 (200, Unwrapped):**
 
 ```json
-["kimchi", "pork", "tofu", "green onion"]
+{
+  "results": [
+    { "ingredientCode": "AI_AB12CD34", "translatedText": "Bacon" },
+    { "ingredientCode": "AI_CD34EF56", "translatedText": "Beef patty" }
+  ]
+}
 ```
 
 Wrapped (`POST /api/v1/python/translations/list`):
@@ -435,7 +443,12 @@ Wrapped (`POST /api/v1/python/translations/list`):
 ```json
 {
   "success": true,
-  "data": ["kimchi", "pork", "tofu", "green onion"]
+  "data": {
+    "results": [
+      { "ingredientCode": "AI_AB12CD34", "translatedText": "Bacon" },
+      { "ingredientCode": "AI_CD34EF56", "translatedText": "Beef patty" }
+    ]
+  }
 }
 ```
 

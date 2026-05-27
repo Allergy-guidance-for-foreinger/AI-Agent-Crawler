@@ -16,6 +16,7 @@ from app.schemas.api_models import (
     PythonMenuAnalysisRequest,
     PythonMenuDescribeRequest,
     TextListTranslationRequest,
+    TextListTranslationResponse,
 )
 from app.services.live_service import LiveService
 from app.common.service_ops import (
@@ -171,9 +172,9 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
         "/translations/list",
         tags=["실사용 API"],
         summary="문자열 목록 일괄 번역 (unwrapped)",
-        description="재료명 등 문자열 배열을 번역해 동일 순서의 문자열 배열로 반환합니다.",
+        description="재료 목록(ingredientCode, text)을 번역해 results 배열로 반환합니다.",
         operation_id="springNativeTranslateTextList",
-        response_model=list[str],
+        response_model=TextListTranslationResponse,
     )
     async def translate_text_list_native(
         request: Request,
@@ -187,10 +188,9 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
             return v1_error("AI_001", "AI 서비스가 구성되지 않았습니다.", status_code=500)
         try:
             return await asyncio.to_thread(
-                service.translate_text_list,
-                payload.sourceLang.strip(),
-                payload.targetLang.strip(),
-                [item.strip() for item in payload.text],
+                _translate_and_pack_results,
+                service,
+                payload,
             )
         except RuntimeError as e:
             if "GEMINI_API_KEY" in str(e):
@@ -208,3 +208,20 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
             return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
 
     return router
+
+
+def _translate_and_pack_results(service: LiveService, payload: TextListTranslationRequest) -> dict[str, list[dict[str, str]]]:
+    translated = service.translate_text_list(
+        payload.sourceLang.strip(),
+        payload.targetLang.strip(),
+        [item.text.strip() for item in payload.ingredients],
+    )
+    return {
+        "results": [
+            {
+                "ingredientCode": payload.ingredients[idx].ingredientCode.strip(),
+                "translatedText": translated[idx],
+            }
+            for idx in range(len(payload.ingredients))
+        ]
+    }

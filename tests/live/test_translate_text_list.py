@@ -24,7 +24,8 @@ def test_translate_text_list_v1_wrapped(monkeypatch: pytest.MonkeyPatch) -> None
     def _fake(self, source_lang: str, target_lang: str, texts: list[str]):
         assert source_lang == "ko"
         assert target_lang == "en"
-        return ["kimchi", "pork"]
+        assert texts == ["베이컨", "소고기 패티"]
+        return ["Bacon", "Beef patty"]
 
     monkeypatch.setattr(
         "app.services.live_service.LiveService.translate_text_list",
@@ -36,13 +37,19 @@ def test_translate_text_list_v1_wrapped(monkeypatch: pytest.MonkeyPatch) -> None
             json={
                 "sourceLang": "ko",
                 "targetLang": "en",
-                "text": ["김치", "돼지고기"],
+                "ingredients": [
+                    {"ingredientCode": "AI_AB12CD34", "text": "베이컨"},
+                    {"ingredientCode": "AI_CD34EF56", "text": "소고기 패티"},
+                ],
             },
         )
     assert resp.status_code == 200
     body = resp.json()
     assert body["success"] is True
-    assert body["data"] == ["kimchi", "pork"]
+    assert body["data"]["results"] == [
+        {"ingredientCode": "AI_AB12CD34", "translatedText": "Bacon"},
+        {"ingredientCode": "AI_CD34EF56", "translatedText": "Beef patty"},
+    ]
 
 
 def test_translate_text_list_native_unwrapped(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -59,11 +66,19 @@ def test_translate_text_list_native_unwrapped(monkeypatch: pytest.MonkeyPatch) -
             json={
                 "sourceLang": "ko",
                 "targetLang": "en",
-                "text": ["두부", "대파"],
+                "ingredients": [
+                    {"ingredientCode": "AI_EF56GH78", "text": "두부"},
+                    {"ingredientCode": "AI_GH78IJ90", "text": "대파"},
+                ],
             },
         )
     assert resp.status_code == 200
-    assert resp.json() == ["tofu", "green onion"]
+    assert resp.json() == {
+        "results": [
+            {"ingredientCode": "AI_EF56GH78", "translatedText": "tofu"},
+            {"ingredientCode": "AI_GH78IJ90", "translatedText": "green onion"},
+        ]
+    }
 
 
 def test_translate_text_list_gemini_upstream_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -77,7 +92,11 @@ def test_translate_text_list_gemini_upstream_error(monkeypatch: pytest.MonkeyPat
     with _app_client(monkeypatch) as client:
         resp = client.post(
             "/api/v1/translations/list",
-            json={"sourceLang": "ko", "targetLang": "en", "text": ["김치"]},
+            json={
+                "sourceLang": "ko",
+                "targetLang": "en",
+                "ingredients": [{"ingredientCode": "AI_A1", "text": "김치"}],
+            },
         )
     assert resp.status_code == 502
     assert resp.json().get("code") == "PYM_502"
@@ -101,5 +120,8 @@ def test_translate_text_list_rejects_empty_item() -> None:
         TextListTranslationRequest(
             sourceLang="ko",
             targetLang="en",
-            text=["김치", "  "],
+            ingredients=[
+                {"ingredientCode": "AI_A1", "text": "김치"},
+                {"ingredientCode": "AI_A2", "text": "  "},
+            ],
         )
