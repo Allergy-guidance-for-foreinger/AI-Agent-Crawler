@@ -89,7 +89,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
 
     @router.post(
         "/python/meals/crawl",
-        tags=["v1"],
+        tags=["실사용 API"],
         summary="식단 기간 조회/크롤링",
         description="학교/식당/기간 조건으로 식단을 조회하고 메뉴 목록을 표준 DTO로 반환합니다.",
         operation_id="crawlMealsV1",
@@ -170,7 +170,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
 
     @router.post(
         "/python/menus/analyze",
-        tags=["v1"],
+        tags=["실사용 API"],
         summary="메뉴 텍스트 AI 분석",
         description="메뉴명 리스트를 받아 재료 코드/신뢰도 추정 결과를 반환합니다.",
         operation_id="analyzeMenusV1",
@@ -309,7 +309,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
 
     @router.post(
         "/python/menus/analyze-image",
-        tags=["v1"],
+        tags=["실사용 API"],
         summary="이미지 기반 메뉴 AI 분석",
         description=(
             "음식 이미지에서 음식명·판단 근거·모델 신뢰도(confidence)를 반환합니다. "

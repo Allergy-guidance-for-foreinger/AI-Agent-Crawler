@@ -74,7 +74,7 @@ MENU_ANALYZE_SUCCESS_EXAMPLE: dict = {
                 "menuName": "김치찌개",
                 "status": "SUCCESS",
                 "spicyLevel": 3,
-                "reason": None,
+                "reason": "테스트 예시: 재료/알레르기/매운맛 판단 근거 요약입니다.",
                 "modelName": "gemini",
                 "modelVersion": "gemini-2.5-flash",
                 "ingredients": [

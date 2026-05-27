@@ -100,7 +100,7 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
 
     @router.post(
         "/translations",
-        tags=["spring-native"],
+        tags=["실사용 API"],
         summary="자유 텍스트 번역",
         operation_id="springNativeTranslateText",
     )

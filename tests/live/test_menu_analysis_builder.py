@@ -21,6 +21,7 @@ def test_build_menu_analysis_success_result_matches_pydantic_dto():
             analysis={
                 "ingredientsKo": ["김치", "돼지고기"],
                 "allergensKo": [{"name": "대두", "reason": "두부"}],
+                "reasonKo": "테스트 이유",
                 "spicyLevel": 3,
             },
         )
@@ -33,6 +34,7 @@ def test_build_menu_analysis_success_result_matches_pydantic_dto():
     assert row.ingredients[1].ingredientCode == "PORK"
     assert row.allergies[0].allergyCode == "PORK"
     assert row.spicyLevel == 3
+    assert row.reason == "테스트 이유"
     assert "analyzedAt" not in raw
     assert "unmappedAllergenNames" not in raw
 

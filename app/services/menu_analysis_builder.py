@@ -34,12 +34,15 @@ def build_menu_analysis_success_result(
     spicy = parse_spicy_level(
         analysis.get("spicyLevel") if analysis.get("spicyLevel") is not None else analysis.get("spicy_level")
     )
+    reason = analysis.get("reasonKo") or analysis.get("reason")
+    if not isinstance(reason, str) or not reason.strip():
+        reason = None
     return {
         "menuId": menu_id,
         "menuName": menu_name,
         "status": "SUCCESS",
         "spicyLevel": spicy,
-        "reason": None,
+        "reason": reason,
         "modelName": model_name,
         "modelVersion": model_version,
         "ingredients": ingredient_results,
