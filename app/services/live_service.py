@@ -99,6 +99,17 @@ class LiveService:
             text,
         )
 
+    def translate_text_list(
+        self, source_lang: str, target_lang: str, texts: list[str]
+    ) -> list[str]:
+        return self.ai_repo.translate_text_list(
+            self.client,
+            self.cfg.gemini_model,
+            source_lang,
+            target_lang,
+            texts,
+        )
+
     def describe_menu(self, menu_id: int, menu_name: str) -> dict[str, Any]:
         description = self.ai_repo.describe_food(
             self.client,
