@@ -583,16 +583,21 @@ JSON 객체 하나만 출력:
     raw = (getattr(resp, "text", "") or "").strip()
     if not raw:
         raise RuntimeError("모델 응답이 비어 있습니다.")
-    parsed = json.loads(raw)
-    if not isinstance(parsed, dict):
-        raise RuntimeError("모델 응답 JSON이 객체 형태가 아닙니다.")
-    description = parsed.get("description") or parsed.get("descriptionKo")
-    if not isinstance(description, str) or not description.strip():
+    description: str | None = None
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            value = parsed.get("description") or parsed.get("descriptionKo")
+            if isinstance(value, str) and value.strip():
+                description = value.strip()
+    except json.JSONDecodeError:
+        pass
+    if not description:
         fallback = _parse_json_field_fallback(raw, "description")
         if fallback:
             return fallback.strip()
         raise RuntimeError("모델 응답에 description이 없습니다.")
-    return description.strip()
+    return description
 
 
 def translate_text_with_gemini(
