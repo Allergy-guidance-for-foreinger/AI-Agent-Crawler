@@ -21,6 +21,8 @@ from app.schemas.api_models import (
     PythonMenuAnalysisRequest,
     PythonMenuAnalysisTargetDto,
     PythonMenuDescribeRequest,
+    PythonMenuDescribeListRequest,
+    PythonMenuDescribeListResponse,
     PythonMenuDescribeResponse,
     PythonMenuOcrResponse,
     PythonMenuTranslationResponse,
@@ -35,6 +37,8 @@ from app.schemas.openapi_examples import (
     MEAL_CRAWL_REQUEST_OPENAPI_EXAMPLES,
     MEAL_CRAWL_SUCCESS_EXAMPLE,
     FOOD_DESCRIBE_REQUEST_OPENAPI_EXAMPLES,
+    MENU_DESCRIBE_LIST_REQUEST_OPENAPI_EXAMPLES,
+    MENU_DESCRIBE_LIST_SUCCESS_EXAMPLE,
     FOOD_DESCRIBE_SUCCESS_EXAMPLE,
     MENU_ANALYZE_REQUEST_OPENAPI_EXAMPLES,
     MENU_ANALYZE_SUCCESS_EXAMPLE,
@@ -279,7 +283,8 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         except RuntimeError as e:
             if "GEMINI_API_KEY" in str(e):
                 return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
-            return v1_error("PYM_500", str(e), status_code=500)
+            logger.warning("describe menus list runtime error: %s", e)
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
         except (genai_errors.ClientError, genai_errors.ServerError):
             logger.warning("upstream gemini describe failed")
             return v1_error(
@@ -291,6 +296,64 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
             logger.exception("unexpected describe food error")
             return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
         return v1_success(result)
+
+    @router.post(
+        "/python/menus/describe/list",
+        tags=["실사용 API"],
+        summary="메뉴 목록 설명",
+        description="langCode와 메뉴 목록을 받아 각 메뉴 설명 결과(results)를 반환합니다.",
+        operation_id="describeMenusListV1",
+        response_model=ApiSuccessResponse[PythonMenuDescribeListResponse],
+        responses={
+            200: {
+                "description": "설명 생성 성공",
+                "content": {
+                    "application/json": {
+                        "examples": {
+                            "기본": {"value": MENU_DESCRIBE_LIST_SUCCESS_EXAMPLE},
+                        }
+                    }
+                },
+            },
+            400: {"model": ApiErrorResponse},
+            500: {"model": ApiErrorResponse},
+            502: {"model": ApiErrorResponse},
+        },
+    )
+    async def describe_menus_list_v1(
+        request: Request,
+        payload: PythonMenuDescribeListRequest = Body(
+            ..., openapi_examples=MENU_DESCRIBE_LIST_REQUEST_OPENAPI_EXAMPLES
+        ),
+    ):
+        try:
+            validate_accept_language(request.headers.get("Accept-Language"))
+        except ValueError as e:
+            return _v1_bad_request(str(e))
+        if client is None:
+            return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+        try:
+            results = await service.describe_menus(
+                payload.menus,
+                lang_code=payload.langCode.strip(),
+                max_concurrency=cfg.ai_max_concurrent_tasks,
+            )
+        except RuntimeError as e:
+            if "GEMINI_API_KEY" in str(e):
+                return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+            logger.warning("describe menus list runtime error: %s", e)
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
+        except (genai_errors.ClientError, genai_errors.ServerError):
+            logger.warning("upstream gemini describe list failed")
+            return v1_error(
+                "PYM_502",
+                "외부 AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해주세요.",
+                status_code=502,
+            )
+        except Exception:
+            logger.exception("unexpected describe menus list error")
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
+        return v1_success({"results": results})
 
     @router.post(
         "/python/menus/ocr",

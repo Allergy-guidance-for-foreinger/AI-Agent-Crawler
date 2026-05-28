@@ -118,6 +118,30 @@ FOOD_DESCRIBE_SUCCESS_EXAMPLE: dict = {
     },
 }
 
+# --- POST /api/v1/python/menus/describe/list ---
+MENU_DESCRIBE_LIST_REQUEST_OPENAPI_EXAMPLES: dict = {
+    "기본": {
+        "summary": "메뉴 2건 한국어 설명",
+        "value": {
+            "langCode": "ko",
+            "menus": [
+                {"menuId": 1, "menuName": "김치찌개"},
+                {"menuId": 2, "menuName": "돈까스"},
+            ],
+        },
+    }
+}
+
+MENU_DESCRIBE_LIST_SUCCESS_EXAMPLE: dict = {
+    "success": True,
+    "data": {
+        "results": [
+            {"menuId": 1, "description": "김치와 돼지고기를 넣고 끓인 매콤한 한국식 찌개입니다."},
+            {"menuId": 2, "description": "바삭하게 튀긴 돼지고기 커틀릿에 소스를 곁들인 음식입니다."},
+        ]
+    },
+}
+
 # --- POST /api/v1/python/menus/translate ---
 MENU_TRANSLATE_REQUEST_OPENAPI_EXAMPLES: dict = {
     "기본": {

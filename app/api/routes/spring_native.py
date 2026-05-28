@@ -14,6 +14,8 @@ from app.config.runtime import API_V1_PREFIX, RuntimeContext
 from app.schemas.api_models import (
     PythonMealCrawlRequest,
     PythonMenuAnalysisRequest,
+    PythonMenuDescribeListRequest,
+    PythonMenuDescribeListResponse,
     PythonMenuDescribeRequest,
     TextListTranslationRequest,
     TextListTranslationResponse,
@@ -130,7 +132,8 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
         except RuntimeError as e:
             if "GEMINI_API_KEY" in str(e):
                 return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
-            return v1_error("PYM_500", str(e), status_code=500)
+            logger.warning("describe menus list runtime error: %s", e)
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
         except (genai_errors.ClientError, genai_errors.ServerError):
             logger.warning("upstream gemini describe failed")
             return v1_error(
@@ -142,6 +145,47 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
             logger.exception("unexpected describe menu error")
             return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
         return result
+
+    @router.post(
+        "/menus/describe/list",
+        tags=["실사용 API"],
+        summary="메뉴 목록 설명 (unwrapped)",
+        description="langCode와 메뉴 목록을 받아 각 메뉴 설명 결과(results)를 반환합니다.",
+        operation_id="springNativeDescribeMenusList",
+        response_model=PythonMenuDescribeListResponse,
+    )
+    async def describe_menus_list_native(
+        request: Request,
+        payload: PythonMenuDescribeListRequest = Body(...),
+    ):
+        try:
+            validate_accept_language(request.headers.get("Accept-Language"))
+        except ValueError as e:
+            return v1_error("COM_001", str(e), status_code=400)
+        if client is None:
+            return v1_error("AI_001", "AI 서비스가 구성되지 않았습니다.", status_code=500)
+        try:
+            results = await service.describe_menus(
+                payload.menus,
+                lang_code=payload.langCode.strip(),
+                max_concurrency=cfg.ai_max_concurrent_tasks,
+            )
+        except RuntimeError as e:
+            if "GEMINI_API_KEY" in str(e):
+                return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
+            logger.warning("describe menus list runtime error: %s", e)
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
+        except (genai_errors.ClientError, genai_errors.ServerError):
+            logger.warning("upstream gemini describe list failed")
+            return v1_error(
+                "PYM_502",
+                "외부 AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해주세요.",
+                status_code=502,
+            )
+        except Exception:
+            logger.exception("unexpected describe menus list error")
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
+        return {"results": results}
 
     @router.post(
         "/translations",
