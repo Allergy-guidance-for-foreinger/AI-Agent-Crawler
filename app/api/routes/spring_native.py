@@ -132,7 +132,8 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
         except RuntimeError as e:
             if "GEMINI_API_KEY" in str(e):
                 return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
-            return v1_error("PYM_500", str(e), status_code=500)
+            logger.warning("describe menus list runtime error: %s", e)
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
         except (genai_errors.ClientError, genai_errors.ServerError):
             logger.warning("upstream gemini describe failed")
             return v1_error(
@@ -172,7 +173,8 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
         except RuntimeError as e:
             if "GEMINI_API_KEY" in str(e):
                 return v1_error("AI_001", "GEMINI_API_KEY is not set", status_code=500)
-            return v1_error("PYM_500", str(e), status_code=500)
+            logger.warning("describe menus list runtime error: %s", e)
+            return v1_error("PYM_500", "요청 처리 중 내부 오류가 발생했습니다.", status_code=500)
         except (genai_errors.ClientError, genai_errors.ServerError):
             logger.warning("upstream gemini describe list failed")
             return v1_error(

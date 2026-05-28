@@ -141,9 +141,9 @@ class LiveService:
                     menu.menuId,
                     menu.menuName.strip(),
                 )
-            desc = str(single.get("description") or "").strip()
-            if normalized_lang != "ko" and desc:
-                desc = await asyncio.to_thread(self.translate_text, "ko", normalized_lang, desc)
+                desc = str(single.get("description") or "").strip()
+                if normalized_lang != "ko" and desc:
+                    desc = await asyncio.to_thread(self.translate_text, "ko", normalized_lang, desc)
             return {"menuId": menu.menuId, "description": desc}
 
         return await asyncio.gather(*[_describe_single(menu) for menu in menus])

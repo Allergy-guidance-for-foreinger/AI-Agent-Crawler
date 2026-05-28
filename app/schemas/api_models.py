@@ -158,7 +158,7 @@ class PythonMenuDescribeListRequest(BaseModel):
 
 class PythonMenuDescribeListResultDto(BaseModel):
     menuId: int
-    description: str = Field(..., min_length=1, description="요청 언어 기준 메뉴 설명")
+    description: str = Field(..., description="요청 언어 기준 메뉴 설명")
 
 
 class PythonMenuDescribeListResponse(BaseModel):

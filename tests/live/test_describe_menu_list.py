@@ -69,3 +69,32 @@ def test_describe_menus_list_native_unwrapped(monkeypatch: pytest.MonkeyPatch) -
     assert body["results"][1]["menuId"] == 2
     assert "description" in body["results"][1]
 
+
+def test_describe_menus_list_allows_empty_description(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _fake(self, menus, *, lang_code: str = "ko", max_concurrency: int = 4):
+        return [{"menuId": 1, "description": ""}]
+
+    monkeypatch.setattr("app.services.live_service.LiveService.describe_menus", _fake)
+    with _app_client(monkeypatch) as client:
+        resp = client.post(
+            "/api/v1/python/menus/describe/list",
+            json={"langCode": "ko", "menus": [{"menuId": 1, "menuName": "김치찌개"}]},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["results"][0]["description"] == ""
+
+
+def test_describe_menus_list_runtime_error_masks_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _fail(self, menus, *, lang_code: str = "ko", max_concurrency: int = 4):
+        raise RuntimeError("upstream raw detail")
+
+    monkeypatch.setattr("app.services.live_service.LiveService.describe_menus", _fail)
+    with _app_client(monkeypatch) as client:
+        resp = client.post(
+            "/api/v1/menus/describe/list",
+            json={"langCode": "ko", "menus": [{"menuId": 1, "menuName": "김치찌개"}]},
+        )
+    assert resp.status_code == 500
+    body = resp.json()
+    assert body["msg"] == "요청 처리 중 내부 오류가 발생했습니다."
+
