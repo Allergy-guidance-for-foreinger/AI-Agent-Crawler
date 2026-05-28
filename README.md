@@ -10,6 +10,7 @@ Spring Boot에서 호출하는 **Python API 서버**입니다. 연동 시에는 
 | `POST` | `/api/v1/python/menus/analyze` | Wrapped | 메뉴 재료·알레르기·매운맛(0~5) 분석 |
 | `POST` | `/api/v1/python/menus/analyze-image` | Wrapped | 음식 사진 → 한국어명·번역·발음·근거·confidence |
 | `POST` | `/api/v1/python/menus/describe` | Wrapped | menuId·menuName → 한국어 음식 설명 |
+| `POST` | `/api/v1/python/menus/describe/list` | Wrapped | langCode + 메뉴 목록 → 메뉴별 설명 목록 |
 | `POST` | `/api/v1/translations` | Unwrapped | 자유 텍스트 번역 (질문/안내 문구 등) |
 | `POST` | `/api/v1/python/translations/list` | Wrapped | 재료명 등 문자열 **목록** 일괄 번역 |
 | `POST` | `/api/v1/translations/list` | Unwrapped | 동일 (응답 본문이 `results` 객체) |
@@ -24,6 +25,7 @@ Spring `WebClient`가 DTO를 바로 역직렬화하기 편하면, 아래 **동�
 | `POST /api/v1/python/meals/crawl` | `POST /api/v1/crawl/meals` |
 | `POST /api/v1/python/menus/analyze` | `POST /api/v1/menus/analyze` |
 | `POST /api/v1/python/menus/describe` | `POST /api/v1/menus/describe` |
+| `POST /api/v1/python/menus/describe/list` | `POST /api/v1/menus/describe/list` |
 | `POST /api/v1/python/translations/list` | `POST /api/v1/translations/list` |
 
 헬스(래핑 없음, `/api/v1` 밖): `GET /health`
@@ -383,6 +385,36 @@ public record PythonMenuAllergyResultDto(
 ```
 
 동일 로직 Unwrapped: `POST /api/v1/menus/describe` — `success`/`data` 없이 위 `data` 객체를 그대로 반환합니다.
+
+#### `POST /api/v1/python/menus/describe/list`
+
+여러 메뉴를 한 번에 설명받는 API입니다. 요청 형식은 아래와 같습니다.
+
+```json
+{
+  "langCode": "ko",
+  "menus": [
+    { "menuId": 1, "menuName": "김치찌개" },
+    { "menuId": 2, "menuName": "돈까스" }
+  ]
+}
+```
+
+성공 응답 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "results": [
+      { "menuId": 1, "description": "김치와 돼지고기를 넣고 끓인 매콤한 한국식 찌개입니다." },
+      { "menuId": 2, "description": "바삭하게 튀긴 돼지고기 커틀릿에 소스를 곁들인 음식입니다." }
+    ]
+  }
+}
+```
+
+동일 로직 Unwrapped: `POST /api/v1/menus/describe/list` — 응답은 `{ "results": [ ... ] }` 형태입니다.
 
 ---
 

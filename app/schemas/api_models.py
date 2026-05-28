@@ -145,6 +145,26 @@ class PythonMenuDescribeResponse(BaseModel):
     modelVersion: str
 
 
+class PythonMenuDescribeListRequest(BaseModel):
+    langCode: str = Field(..., min_length=1, description="응답 설명 언어 코드 (예: ko, en)")
+    menus: list[PythonMenuDescribeRequest] = Field(..., min_length=1, description="설명할 메뉴 목록")
+
+    @model_validator(mode="after")
+    def validate_fields(self):
+        if not self.langCode.strip():
+            raise ValueError("langCode는 공백일 수 없습니다.")
+        return self
+
+
+class PythonMenuDescribeListResultDto(BaseModel):
+    menuId: int
+    description: str = Field(..., min_length=1, description="요청 언어 기준 메뉴 설명")
+
+
+class PythonMenuDescribeListResponse(BaseModel):
+    results: list[PythonMenuDescribeListResultDto]
+
+
 class PythonMenuImageAnalysisResultDto(BaseModel):
     """`POST /python/menus/analyze-image` 전용 응답 항목."""
 

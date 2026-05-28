@@ -124,6 +124,30 @@ class LiveService:
             "modelVersion": self.cfg.gemini_model,
         }
 
+    async def describe_menus(
+        self,
+        menus: list[Any],
+        *,
+        lang_code: str = "ko",
+        max_concurrency: int = 4,
+    ) -> list[dict[str, Any]]:
+        semaphore = asyncio.Semaphore(max_concurrency)
+        normalized_lang = (lang_code or "ko").strip() or "ko"
+
+        async def _describe_single(menu) -> dict[str, Any]:
+            async with semaphore:
+                single = await asyncio.to_thread(
+                    self.describe_menu,
+                    menu.menuId,
+                    menu.menuName.strip(),
+                )
+            desc = str(single.get("description") or "").strip()
+            if normalized_lang != "ko" and desc:
+                desc = await asyncio.to_thread(self.translate_text, "ko", normalized_lang, desc)
+            return {"menuId": menu.menuId, "description": desc}
+
+        return await asyncio.gather(*[_describe_single(menu) for menu in menus])
+
     async def analyze_food_image_with_language(
         self,
         image_bytes: bytes,
