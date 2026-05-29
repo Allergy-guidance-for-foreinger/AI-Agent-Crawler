@@ -11,7 +11,12 @@ from google.genai import errors as genai_errors
 
 from app.config.app_factory import create_app
 from app.config.runtime import load_runtime_context
-from app.services.ops import translate_text_list_with_gemini
+from app.services.ops import (
+    MENU_DESCRIPTION_PROMPT_MAX_CHARS,
+    MENU_DESCRIPTION_RESPONSE_MAX_CHARS,
+    translate_text_list_with_gemini,
+    truncate_menu_description,
+)
 
 
 def _app_client(monkeypatch: pytest.MonkeyPatch):
@@ -21,10 +26,18 @@ def _app_client(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_translate_text_list_v1_wrapped(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _fake(self, source_lang: str, target_lang: str, texts: list[str]):
+    def _fake(
+        self,
+        source_lang: str,
+        target_lang: str,
+        texts: list[str],
+        *,
+        for_menu_description: bool = False,
+    ):
         assert source_lang == "ko"
         assert target_lang == "en"
         assert texts == ["베이컨", "소고기 패티"]
+        assert for_menu_description is True
         return ["Bacon", "Beef patty"]
 
     monkeypatch.setattr(
@@ -100,6 +113,71 @@ def test_translate_text_list_gemini_upstream_error(monkeypatch: pytest.MonkeyPat
         )
     assert resp.status_code == 502
     assert resp.json().get("code") == "PYM_502"
+
+
+def test_translate_text_list_v1_passes_menu_description_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict = {}
+
+    def _fake(
+        self,
+        source_lang: str,
+        target_lang: str,
+        texts: list[str],
+        *,
+        for_menu_description: bool = False,
+    ):
+        captured["for_menu_description"] = for_menu_description
+        return ["desc"]
+
+    monkeypatch.setattr(
+        "app.services.live_service.LiveService.translate_text_list",
+        _fake,
+    )
+    with _app_client(monkeypatch) as client:
+        resp = client.post(
+            "/api/v1/python/translations/list",
+            json={
+                "sourceLang": "ko",
+                "targetLang": "en",
+                "ingredients": [{"ingredientCode": "AI_A1", "text": "김치찌개 설명"}],
+            },
+        )
+    assert resp.status_code == 200
+    assert captured["for_menu_description"] is True
+
+
+def test_translate_text_list_with_gemini_menu_description_prompt_and_cap() -> None:
+    client = MagicMock()
+    client.models.generate_content.return_value = MagicMock(
+        text='{"translatedTexts": ["kimchi stew"]}'
+    )
+    translate_text_list_with_gemini(
+        client,
+        "gemini-2.5-flash",
+        "ko",
+        "en",
+        ["김치찌개 설명"],
+        for_menu_description=True,
+    )
+    prompt = client.models.generate_content.call_args.kwargs["contents"][0]
+    assert f"{MENU_DESCRIPTION_PROMPT_MAX_CHARS} characters" in prompt
+    long = "a" * (MENU_DESCRIPTION_RESPONSE_MAX_CHARS + 5)
+    client.models.generate_content.return_value = MagicMock(
+        text=f'{{"translatedTexts": ["{long}"]}}'
+    )
+    result = translate_text_list_with_gemini(
+        client,
+        "gemini-2.5-flash",
+        "ko",
+        "en",
+        ["설명"],
+        for_menu_description=True,
+    )
+    assert len(result[0]) == MENU_DESCRIPTION_RESPONSE_MAX_CHARS
+
+
+def test_truncate_menu_description_caps_at_500() -> None:
+    assert len(truncate_menu_description("가" * 510)) == MENU_DESCRIPTION_RESPONSE_MAX_CHARS
 
 
 def test_translate_text_list_with_gemini_parses_response() -> None:

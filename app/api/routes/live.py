@@ -548,7 +548,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         "/python/translations/list",
         tags=["실사용 API"],
         summary="문자열 목록 일괄 번역",
-        description="재료 목록(ingredientCode, text)을 번역해 results 배열로 반환합니다.",
+        description="재료·메뉴 설명 목록(ingredientCode, text)을 번역해 results 배열로 반환합니다. 메뉴 설명은 400자 이내로 번역·응답은 최대 500자입니다.",
         operation_id="translateTextListV1",
         response_model=ApiSuccessResponse[TextListTranslationResponse],
         responses={
@@ -592,6 +592,7 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
                 payload.sourceLang.strip(),
                 payload.targetLang.strip(),
                 [item.text.strip() for item in payload.ingredients],
+                for_menu_description=True,
             )
         except RuntimeError as e:
             if "GEMINI_API_KEY" in str(e):
