@@ -552,6 +552,22 @@ def _validate_source_url(source_url: str) -> None:
             raise RuntimeError("sourceUrl이 사설/내부/예약 IP로 해석되어 차단되었습니다.")
 
 
+MENU_DESCRIPTION_PROMPT_MAX_CHARS = 400
+MENU_DESCRIPTION_RESPONSE_MAX_CHARS = 500
+
+
+def truncate_menu_description(
+    text: str,
+    *,
+    max_chars: int = MENU_DESCRIPTION_RESPONSE_MAX_CHARS,
+) -> str:
+    """메뉴 설명(번역 포함) 응답 길이를 서버 저장 한도 이하로 맞춥니다."""
+    stripped = (text or "").strip()
+    if len(stripped) <= max_chars:
+        return stripped
+    return stripped[:max_chars].rstrip()
+
+
 def describe_food_with_gemini(
     client: genai.Client | None,
     model_name: str,
@@ -606,6 +622,8 @@ def translate_text_list_with_gemini(
     source_lang: str,
     target_lang: str,
     texts: list[str],
+    *,
+    for_menu_description: bool = False,
 ) -> list[str]:
     """문자열 목록을 한 번에 번역합니다. 입력 순서와 동일한 길이의 목록을 반환합니다."""
     if client is None:
@@ -620,8 +638,19 @@ def translate_text_list_with_gemini(
     unique_cleaned = list(dict.fromkeys(cleaned))
 
     numbered = "\n".join(f"{i + 1}. {item}" for i, item in enumerate(unique_cleaned))
+    item_kind = (
+        "a Korean food menu description"
+        if for_menu_description
+        else "a food ingredient or short label"
+    )
+    length_rule = ""
+    if for_menu_description:
+        length_rule = f"""
+Each translation must be at most {MENU_DESCRIPTION_PROMPT_MAX_CHARS} characters (spaces included).
+Never exceed {MENU_DESCRIPTION_RESPONSE_MAX_CHARS} characters per item.
+"""
     prompt = f"""Translate each line from {source_lang} to {target_lang}.
-Preserve the same count and order as the input. Each item is a food ingredient or short label.
+Preserve the same count and order as the input. Each item is {item_kind}.{length_rule}
 
 Return ONE JSON object only:
 {{
@@ -666,7 +695,10 @@ Input ({len(unique_cleaned)} items):
         raise RuntimeError("모델 번역 응답에 빈 문자열이 포함되어 있습니다.")
 
     mapping = dict(zip(unique_cleaned, translated_unique))
-    return [mapping[item] for item in cleaned]
+    ordered = [mapping[item] for item in cleaned]
+    if for_menu_description:
+        return [truncate_menu_description(item) for item in ordered]
+    return ordered
 
 
 def translate_text_with_gemini(

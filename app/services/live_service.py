@@ -100,7 +100,12 @@ class LiveService:
         )
 
     def translate_text_list(
-        self, source_lang: str, target_lang: str, texts: list[str]
+        self,
+        source_lang: str,
+        target_lang: str,
+        texts: list[str],
+        *,
+        for_menu_description: bool = False,
     ) -> list[str]:
         return self.ai_repo.translate_text_list(
             self.client,
@@ -108,6 +113,7 @@ class LiveService:
             source_lang,
             target_lang,
             texts,
+            for_menu_description=for_menu_description,
         )
 
     def describe_menu(self, menu_id: int, menu_name: str) -> dict[str, Any]:

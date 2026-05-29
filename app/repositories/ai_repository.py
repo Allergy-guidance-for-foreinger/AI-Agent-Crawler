@@ -61,9 +61,16 @@ class AIRepository:
         source_lang: str,
         target_lang: str,
         texts: list[str],
+        *,
+        for_menu_description: bool = False,
     ) -> list[str]:
         return translate_text_list_with_gemini(
-            client, model_name, source_lang, target_lang, texts
+            client,
+            model_name,
+            source_lang,
+            target_lang,
+            texts,
+            for_menu_description=for_menu_description,
         )
 
     def localize_food_name(
