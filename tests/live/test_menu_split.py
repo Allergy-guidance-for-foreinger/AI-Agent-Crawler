@@ -114,7 +114,7 @@ class TestBuildDailyMeals:
             start=date(2026, 5, 11),
             end=date(2026, 5, 17),
         )
-        assert len(meals) == 2
+        assert len(meals) == 3
 
         breakfast = next(m for m in meals if m["mealType"] == "BREAKFAST")
         assert len(breakfast["menus"]) == 1
@@ -125,6 +125,9 @@ class TestBuildDailyMeals:
         assert len(lunch["menus"]) == 2
         menu_names = [m["menuName"] for m in lunch["menus"]]
         assert menu_names == ["김치우동", "목살필라프"]
+
+        dinner = next(m for m in meals if m["mealType"] == "DINNER")
+        assert [m["menuName"] for m in dinner["menus"]] == menu_names
 
     def test_display_order_sequential(self):
         D = MENU_ITEM_DELIM
@@ -186,6 +189,7 @@ class TestBuildDailyMeals:
         assert keys == [
             ("2026-05-12", "BREAKFAST"),
             ("2026-05-12", "LUNCH"),
+            ("2026-05-12", "DINNER"),
             ("2026-05-13", "BREAKFAST"),
             ("2026-05-13", "DINNER"),
         ]
@@ -226,9 +230,8 @@ class TestBuildDailyMeals:
             start=date(2026, 5, 11),
             end=date(2026, 5, 17),
         )
-        assert len(meals) == 1
-        names = [m["menuName"] for m in meals[0]["menus"]]
-        assert names == [
+        assert len(meals) == 2
+        expected = [
             "떡만두라면",
             "얼큰라면",
             "치즈라면",
@@ -238,3 +241,49 @@ class TestBuildDailyMeals:
             "고구마돈가스",
             "치즈돈가스",
         ]
+        lunch = next(m for m in meals if m["mealType"] == "LUNCH")
+        dinner = next(m for m in meals if m["mealType"] == "DINNER")
+        assert [m["menuName"] for m in lunch["menus"]] == expected
+        assert [m["menuName"] for m in dinner["menus"]] == expected
+
+    def test_ilpum_duplicates_ilpumoiri_lunch_to_dinner(self):
+        D = MENU_ITEM_DELIM
+        df = self._make_df(
+            {
+                "월(05.12)": [
+                    f"조식{D} 08:20~10:00{D} 도시락A{D}",
+                    f"일품요리{D} 11:00~14:00{D} 16:00~18:30{D} 김치우동{D} 목살필라프{D}",
+                ],
+            }
+        )
+        meals = build_daily_meals(
+            cafeteria_name="일품식당",
+            table=df,
+            start=date(2026, 5, 11),
+            end=date(2026, 5, 17),
+        )
+        assert len(meals) == 3
+        dinner = next(m for m in meals if m["mealType"] == "DINNER")
+        lunch = next(m for m in meals if m["mealType"] == "LUNCH")
+        assert [m["menuName"] for m in dinner["menus"]] == [m["menuName"] for m in lunch["menus"]]
+        assert all(m["cornerName"] == "일품요리" for m in dinner["menus"])
+
+    def test_jeongchan_keeps_lunch_only(self):
+        D = MENU_ITEM_DELIM
+        df = self._make_df(
+            {
+                "월(05.12)": [
+                    f"조식{D} 토스트{D}",
+                    f"중식{D} 11:30~13:30{D} 잡곡밥{D} 된장국{D}",
+                ],
+            }
+        )
+        meals = build_daily_meals(
+            cafeteria_name="정찬식당",
+            table=df,
+            start=date(2026, 5, 11),
+            end=date(2026, 5, 17),
+        )
+        assert len(meals) == 1
+        assert meals[0]["mealType"] == "LUNCH"
+        assert [m["menuName"] for m in meals[0]["menus"]] == ["잡곡밥", "된장국"]
