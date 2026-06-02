@@ -784,7 +784,8 @@ server {
     listen 80;
     server_name api.your-domain.com;
 
-    client_max_body_size 25M;
+    # 앱 이미지 한도 25MB; multipart 오버헤드용으로 30M 권장
+    client_max_body_size 30M;
 
     location / {
         proxy_pass http://127.0.0.1:8000;
