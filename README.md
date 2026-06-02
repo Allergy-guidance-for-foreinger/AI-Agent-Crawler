@@ -784,7 +784,7 @@ server {
     listen 80;
     server_name api.your-domain.com;
 
-    client_max_body_size 15M;
+    client_max_body_size 25M;
 
     location / {
         proxy_pass http://127.0.0.1:8000;

@@ -18,7 +18,8 @@ WEEKDAY_TO_INDEX = {
     "sun": 6,
 }
 
-MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_IMAGE_SIZE_MB = 25
+MAX_IMAGE_SIZE = MAX_IMAGE_SIZE_MB * 1024 * 1024
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 API_V1_PREFIX = "/api/v1"
 ALLOWED_ACCEPT_LANGUAGES = {"ko", "en", "zh-CN", "vi", "ja"}

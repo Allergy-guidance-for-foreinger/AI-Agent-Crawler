@@ -10,7 +10,13 @@ import requests
 from fastapi import APIRouter, Body, File, Form, Request, UploadFile
 from google.genai import errors as genai_errors
 
-from app.config.runtime import ALLOWED_MIME_TYPES, API_V1_PREFIX, MAX_IMAGE_SIZE, RuntimeContext
+from app.config.runtime import (
+    ALLOWED_MIME_TYPES,
+    API_V1_PREFIX,
+    MAX_IMAGE_SIZE,
+    MAX_IMAGE_SIZE_MB,
+    RuntimeContext,
+)
 from app.schemas.api_models import (
     ApiErrorResponse,
     ApiSuccessResponse,
@@ -70,7 +76,11 @@ def _validate_image_upload_v1(image_bytes: bytes, mime_type: str) -> tuple[bool,
     if not image_bytes:
         return False, _v1_bad_request("이미지 파일이 비어 있습니다.")
     if len(image_bytes) > MAX_IMAGE_SIZE:
-        return False, v1_error("COM_001", "이미지 파일이 너무 큽니다 (최대 10MB).", status_code=413)
+        return False, v1_error(
+            "COM_001",
+            f"이미지 파일이 너무 큽니다 (최대 {MAX_IMAGE_SIZE_MB}MB).",
+            status_code=413,
+        )
     if mime_type not in ALLOWED_MIME_TYPES:
         return False, _v1_bad_request(f"지원하지 않는 이미지 형식: {mime_type}")
     return True, None
