@@ -432,13 +432,18 @@ def _apply_cafeteria_meal_rules(cafeteria_name: str, meals: list[dict[str, Any]]
 
     if cafeteria_name == "정찬식당":
         result = [meal for meal in result if meal["mealType"] == "LUNCH"]
-    elif cafeteria_name == "일품식당":
+    elif cafeteria_name in ("일품식당", "분식당"):
         extras: list[dict[str, Any]] = []
         for meal in result:
             if meal["mealType"] != "LUNCH":
                 continue
-            ilpum_menus = [entry for entry in meal["menus"] if entry.get("cornerName") == "일품요리"]
-            if not ilpum_menus:
+            if cafeteria_name == "일품식당":
+                menus_to_clone = [
+                    entry for entry in meal["menus"] if entry.get("cornerName") == "일품요리"
+                ]
+            else:
+                menus_to_clone = meal["menus"]
+            if not menus_to_clone:
                 continue
             meal_date = meal["mealDate"]
             if _has_meal_slot(result + extras, meal_date=meal_date, meal_type="DINNER"):
@@ -447,23 +452,7 @@ def _apply_cafeteria_meal_rules(cafeteria_name: str, meals: list[dict[str, Any]]
                 {
                     "mealDate": meal_date,
                     "mealType": "DINNER",
-                    "menus": _clone_menu_entries(ilpum_menus),
-                }
-            )
-        result.extend(extras)
-    elif cafeteria_name == "분식당":
-        extras = []
-        for meal in result:
-            if meal["mealType"] != "LUNCH":
-                continue
-            meal_date = meal["mealDate"]
-            if _has_meal_slot(result + extras, meal_date=meal_date, meal_type="DINNER"):
-                continue
-            extras.append(
-                {
-                    "mealDate": meal_date,
-                    "mealType": "DINNER",
-                    "menus": _clone_menu_entries(meal["menus"]),
+                    "menus": _clone_menu_entries(menus_to_clone),
                 }
             )
         result.extend(extras)
