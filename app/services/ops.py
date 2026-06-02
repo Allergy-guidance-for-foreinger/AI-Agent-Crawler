@@ -405,6 +405,67 @@ def sanitize_url_for_log(source_url: str) -> str:
     return f"{parsed.scheme}://{host}{path}"
 
 
+def _clone_menu_entries(menus: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "cornerName": entry["cornerName"],
+            "menuName": entry["menuName"],
+            "displayOrder": idx,
+        }
+        for idx, entry in enumerate(menus, start=1)
+    ]
+
+
+def _has_meal_slot(
+    meals: list[dict[str, Any]],
+    *,
+    meal_date: str,
+    meal_type: str,
+) -> bool:
+    return any(m["mealDate"] == meal_date and m["mealType"] == meal_type for m in meals)
+
+
+def _apply_cafeteria_meal_rules(cafeteria_name: str, meals: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """식당별 끼니 규칙: 정찬=중식만, 일품=일품요리 점심→석식 복제, 분식=지정 메뉴 점심·석식 동일."""
+    cafeteria_name = normalize_kumoh_cafeteria_name(cafeteria_name)
+    result = list(meals)
+
+    if cafeteria_name == "정찬식당":
+        result = [meal for meal in result if meal["mealType"] == "LUNCH"]
+    elif cafeteria_name in ("일품식당", "분식당"):
+        extras: list[dict[str, Any]] = []
+        for meal in result:
+            if meal["mealType"] != "LUNCH":
+                continue
+            if cafeteria_name == "일품식당":
+                menus_to_clone = [
+                    entry for entry in meal["menus"] if entry.get("cornerName") == "일품요리"
+                ]
+            else:
+                menus_to_clone = meal["menus"]
+            if not menus_to_clone:
+                continue
+            meal_date = meal["mealDate"]
+            if _has_meal_slot(result + extras, meal_date=meal_date, meal_type="DINNER"):
+                continue
+            extras.append(
+                {
+                    "mealDate": meal_date,
+                    "mealType": "DINNER",
+                    "menus": _clone_menu_entries(menus_to_clone),
+                }
+            )
+        result.extend(extras)
+
+    result.sort(
+        key=lambda item: (
+            item["mealDate"],
+            MEAL_TYPE_ORDER.get(str(item["mealType"]), 99),
+        )
+    )
+    return result
+
+
 def extract_date_from_column(column_name: str, start: date, end: date) -> date | None:
     match = re.search(r"(\d{1,2})\.(\d{1,2})", column_name)
     if not match:
@@ -468,13 +529,7 @@ def build_daily_meals(*, cafeteria_name: str, table: Any, start: date, end: date
                 }
             )
 
-    meals.sort(
-        key=lambda item: (
-            item["mealDate"],
-            MEAL_TYPE_ORDER.get(str(item["mealType"]), 99),
-        )
-    )
-    return meals
+    return _apply_cafeteria_meal_rules(cafeteria_name, meals)
 
 
 def load_menu_table_for_source(*, cafeteria_name: str, source_url: str) -> pd.DataFrame:
