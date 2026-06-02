@@ -10,7 +10,13 @@ import requests
 from fastapi import APIRouter, Body, File, Form, Request, UploadFile
 from google.genai import errors as genai_errors
 
-from app.config.runtime import ALLOWED_MIME_TYPES, API_V1_PREFIX, MAX_IMAGE_SIZE, RuntimeContext
+from app.config.runtime import (
+    ALLOWED_MIME_TYPES,
+    API_V1_PREFIX,
+    MAX_IMAGE_SIZE,
+    MAX_IMAGE_SIZE_MB,
+    RuntimeContext,
+)
 from app.schemas.api_models import (
     ApiErrorResponse,
     ApiSuccessResponse,
@@ -66,11 +72,27 @@ def _v1_bad_request(msg: str):
     return v1_error("COM_001", msg, status_code=400)
 
 
+def _image_payload_too_large_response() -> Any:
+    return v1_error(
+        "COM_001",
+        f"이미지 파일이 너무 큽니다 (최대 {MAX_IMAGE_SIZE_MB}MB).",
+        status_code=413,
+    )
+
+
+def _reject_oversized_upload_before_read(image: UploadFile) -> Any | None:
+    """read() 전에 Content-Length/size로 거절해 대용량 파일 OOM을 방지합니다."""
+    size = image.size
+    if size is not None and size > MAX_IMAGE_SIZE:
+        return _image_payload_too_large_response()
+    return None
+
+
 def _validate_image_upload_v1(image_bytes: bytes, mime_type: str) -> tuple[bool, Any]:
     if not image_bytes:
         return False, _v1_bad_request("이미지 파일이 비어 있습니다.")
     if len(image_bytes) > MAX_IMAGE_SIZE:
-        return False, v1_error("COM_001", "이미지 파일이 너무 큽니다 (최대 10MB).", status_code=413)
+        return False, _image_payload_too_large_response()
     if mime_type not in ALLOWED_MIME_TYPES:
         return False, _v1_bad_request(f"지원하지 않는 이미지 형식: {mime_type}")
     return True, None
@@ -377,6 +399,8 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         except ValueError as e:
             return _v1_bad_request(str(e))
 
+        if (early := _reject_oversized_upload_before_read(image)) is not None:
+            return early
         image_bytes = await image.read()
         mime_type = image.content_type or "image/jpeg"
         valid, err = _validate_image_upload_v1(image_bytes, mime_type)
@@ -419,6 +443,8 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         except ValueError as e:
             return _v1_bad_request(str(e))
 
+        if (early := _reject_oversized_upload_before_read(image)) is not None:
+            return early
         image_bytes = await image.read()
         mime_type = image.content_type or "image/jpeg"
         valid, err = _validate_image_upload_v1(image_bytes, mime_type)
@@ -468,6 +494,8 @@ def create_v1_router(ctx: RuntimeContext) -> APIRouter:
         except ValueError as e:
             return _v1_bad_request(str(e))
 
+        if (early := _reject_oversized_upload_before_read(image)) is not None:
+            return early
         image_bytes = await image.read()
         mime_type = image.content_type or "image/jpeg"
         valid, err = _validate_image_upload_v1(image_bytes, mime_type)
