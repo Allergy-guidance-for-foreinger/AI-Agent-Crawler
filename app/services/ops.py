@@ -151,17 +151,22 @@ def analyze_food_text(client: genai.Client | None, model_name: str, name: str) -
 다음 JSON 객체 하나만 출력:
 {{
   "foodNameKo": "음식 이름(한국어)",
-  "ingredientsKo": ["주요 재료를 빠짐없이 한국어로. 고기·해산물·채소·양념·부재료 포함"],
+  "ingredientsKo": [
+    {{"name": "재료명(일상 표현 가능)", "allergen": "표준 알레르기명 또는 null"}}
+  ],
   "allergensKo": [{{"name": "표준 알레르기명(아래 목록 중 하나)", "reason": "함유·가능 근거"}}],
   "spicyLevel": 2
 }}
 
 규칙:
-- ingredientsKo: 메뉴에 들어갈 수 있는 주재료를 모두 나열(알레르기 유발 재료도 포함).
-- allergensKo.name: 아래 표준명 문자열 그대로만 사용. 목록에 없는 이름(생선, 어류, 콩 등) 금지.
+- ingredientsKo: 메뉴의 주요 재료를 빠짐없이 나열(고기·해산물·채소·양념·부재료 포함). name은 일상 재료명 그대로.
+  allergen: 해당 재료가 아래 표준 알레르기와 관련되면 표준명만, 아니면 null.
+  예: {{"name":"앞다리살","allergen":"돼지고기"}}, {{"name":"김치","allergen":null}}, {{"name":"간장","allergen":"대두"}}
+  표준명: {mfds_labels}
+- allergensKo: 메뉴 전체에 해당하는 알레르기만. name은 표준명 문자열 그대로. 목록 밖 이름(생선, 어류, 콩 등) 금지.
   표준명: {mfds_labels}
   예: 계란→난류, 콩·두부·간장→대두, 밀가루→밀, 치킨→닭고기
-- 확실하지 않은 알레르기는 allergensKo에 넣지 말 것.
+- 확실하지 않은 알레르기는 allergensKo에 넣지 말고, ingredientsKo.allergen도 null로 둘 것.
 - spicyLevel: 매운맛 0~5 정수. 0=매운맛 없음(흰밥·미지근한 음식), 1=약함~5=아주 매움. 판단 불가하면 키 생략.
 """
     resp = client.models.generate_content(

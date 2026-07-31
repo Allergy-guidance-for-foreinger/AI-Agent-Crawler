@@ -169,6 +169,60 @@ def map_ingredient_code(token: str) -> str | None:
     return map_allergy_code(token)
 
 
+def resolve_canonical_allergen_label(token: str) -> str | None:
+    """별칭/표준명이면 식약처 canonical 라벨, 아니면 None."""
+    normalized = token.strip()
+    if not normalized:
+        return None
+    alias_key = normalized.lower() if normalized.isascii() else normalized
+    return ALIAS_TO_CANONICAL.get(normalized) or ALIAS_TO_CANONICAL.get(alias_key)
+
+
+def _code_from_allergen_label(label: str) -> str | None:
+    canonical = resolve_canonical_allergen_label(label) or label.strip()
+    if not canonical:
+        return None
+    return _code_from_canonical_label(canonical) or map_allergy_code(canonical)
+
+
+def resolve_ingredient_code(*, name: str, allergen: str | None) -> str | None:
+    """Gemini allergen 표준명 우선, 없으면 재료명 별칭으로 코드 매핑."""
+    if allergen:
+        cleaned = allergen.strip()
+        if cleaned and cleaned.lower() not in {"null", "none", "없음", "-"}:
+            code = _code_from_allergen_label(cleaned)
+            if code:
+                return code
+    return map_ingredient_code(name)
+
+
+def parse_ingredient_item(raw: Any) -> tuple[str, str | None]:
+    """ingredientsKo 항목(문자열 또는 {name, allergen}) → (표시명, 코드)."""
+    allergen: str | None = None
+    if isinstance(raw, dict):
+        name = str(
+            raw.get("name")
+            or raw.get("ingredientName")
+            or raw.get("재료")
+            or ""
+        ).strip()
+        allergen_raw = raw.get("allergen")
+        if allergen_raw is None:
+            allergen_raw = raw.get("allergenName")
+        if allergen_raw is not None:
+            allergen = str(allergen_raw).strip() or None
+    else:
+        name = str(raw).strip()
+    if not name:
+        return "", None
+    return name, resolve_ingredient_code(name=name, allergen=allergen)
+
+
+def normalize_ingredient_name(token: str) -> tuple[str, str | None]:
+    """문자열 재료명 → (원문 표시명, 선택적 코드)."""
+    return parse_ingredient_item(token)
+
+
 def format_mfds_labels_for_prompt() -> str:
     return ", ".join(MFDS_ALLERGEN_LABELS)
 
@@ -180,13 +234,12 @@ def build_ingredient_results(
     confidence_decay: float = 0.07,
     min_confidence: float = 0.5,
 ) -> list[dict[str, Any]]:
-    """모델 재료 목록 → API ingredients (이름 전부 + 선택적 코드)."""
+    """모델 재료 목록 → API ingredients (자유 이름 유지 + 선택적 코드)."""
     results: list[dict[str, Any]] = []
     for idx, raw in enumerate(ingredients_ko or []):
-        name = str(raw).strip()
+        name, code = parse_ingredient_item(raw)
         if not name:
             continue
-        code = map_ingredient_code(name)
         results.append(
             {
                 "ingredientName": name,
@@ -221,5 +274,26 @@ def build_allergy_results(
                 unmapped.append(label)
             continue
         dedup.add(code)
+        allergies.append({"allergyCode": code, "confidence": fallback_confidence})
+    return allergies, unmapped
+
+
+def merge_allergy_results(
+    *,
+    allergens_ko: list[Any],
+    ingredient_results: list[dict[str, Any]],
+    fallback_confidence: float = 0.8,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """allergensKo를 기준으로 allergies를 만들고, 재료 코드를 합집합으로 보강."""
+    allergies, unmapped = build_allergy_results(
+        allergens_ko,
+        fallback_confidence=fallback_confidence,
+    )
+    seen = {str(item.get("allergyCode") or "") for item in allergies}
+    for item in ingredient_results:
+        code = str(item.get("ingredientCode") or "").strip()
+        if not code or code in seen:
+            continue
+        seen.add(code)
         allergies.append({"allergyCode": code, "confidence": fallback_confidence})
     return allergies, unmapped
