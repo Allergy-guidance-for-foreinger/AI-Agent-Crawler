@@ -88,7 +88,7 @@ MENU_ANALYZE_SUCCESS_EXAMPLE: dict = {
                 "modelName": "gemini",
                 "modelVersion": "gemini-2.5-flash",
                 "ingredients": [
-                    {"ingredientName": "김치", "ingredientCode": null, "confidence": 0.95},
+                    {"ingredientName": "김치", "ingredientCode": None, "confidence": 0.95},
                     {"ingredientName": "돼지고기", "ingredientCode": "PORK", "confidence": 0.88},
                     {"ingredientName": "간장", "ingredientCode": "SOYBEAN", "confidence": 0.81},
                 ],
