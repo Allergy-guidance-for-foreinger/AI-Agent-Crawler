@@ -14,7 +14,18 @@ MEAL_CRAWL_REQUEST_OPENAPI_EXAMPLES: dict = {
             "startDate": "2026-04-21",
             "endDate": "2026-04-27",
         },
-    }
+    },
+    "경북대": {
+        "summary": "경북대 정보센터식당 주간 조회",
+        "description": "Accept-Language: ko 권장",
+        "value": {
+            "schoolName": "경북대학교",
+            "cafeteriaName": "정보센터식당",
+            "sourceUrl": "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
+            "startDate": "2026-07-27",
+            "endDate": "2026-08-01",
+        },
+    },
 }
 
 MEAL_CRAWL_SUCCESS_EXAMPLE: dict = {

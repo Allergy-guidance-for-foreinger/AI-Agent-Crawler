@@ -10,10 +10,12 @@
   - `spring_native.py`: Spring `MealCrawlProperties` 기본 경로 (`/api/v1/crawl/meals` 등, 비래핑)
 - `app/services`
   - 유스케이스 오케스트레이션(`live_service.py`), 순수 로직(`ops.py`)
+  - 식단 크롤은 `crawl_daily_meals()`가 `sourceUrl` 호스트로 학교 어댑터를 선택합니다.
 - `app/repositories`
   - 외부 I/O (Spring HTTP, 크롤링 소스, Gemini 호출)
 - `app/domain`
   - 순수 도메인 모델 및 정책
+  - 크롤러: `crawler/kumoh_menu.py`(금오), `crawler/knu_menu.py`(경북대)
 - `app/schemas`
   - 요청/응답 Pydantic 모델 및 OpenAPI 예시
 - `app/config`

@@ -59,7 +59,12 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
             return v1_error("COM_001", str(e), status_code=400)
 
         try:
-            table = service.load_menu_table_for_source(payload.cafeteriaName, payload.sourceUrl)
+            meals = service.crawl_daily_meals(
+                cafeteria_name=payload.cafeteriaName,
+                source_url=payload.sourceUrl,
+                start=payload.startDate,
+                end=payload.endDate,
+            )
         except RuntimeError as e:
             logger.warning("crawl bad request cafeteria=%s reason=%s", payload.cafeteriaName, e)
             return v1_error("PYM_400", "요청 식단 조회 조건이 유효하지 않거나 데이터가 없습니다.", status_code=400)
@@ -72,12 +77,6 @@ def create_spring_native_router(ctx: RuntimeContext) -> APIRouter:
             )
             return v1_error("PYM_502", "외부 크롤링 소스 조회에 실패했습니다. 잠시 후 다시 시도해주세요.", status_code=502)
 
-        meals = service.build_daily_meals(
-            cafeteria_name=payload.cafeteriaName,
-            table=table,
-            start=payload.startDate,
-            end=payload.endDate,
-        )
         return {
             "schoolName": payload.schoolName,
             "cafeteriaName": payload.cafeteriaName,
