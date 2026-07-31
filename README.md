@@ -342,7 +342,8 @@ public record PythonMenuAllergyResultDto(
 - `status`: 성공 시 `SUCCESS`, 예외 시 `FAILED`.
 - `spicyLevel`: 매운맛 **0~5** 정수 또는 `null`. **0**=매운맛 없음(밥 등), **null**=실패·미추정.
 - `ingredients`: 추정 재료 목록(`ingredientName` 필수, `ingredientCode`는 매핑 성공 시만).
-- `allergies`: 알레르기 유발 추정 코드 목록(`allergyCode`). 분석 실패 시 빈 배열.
+  재료명은 자유 텍스트이며, Gemini `allergen` 표준명 또는 별칭으로 코드가 붙을 수 있습니다.
+- `allergies`: 알레르기 코드 목록(`allergyCode`). `allergensKo` 표준명으로 확정하고, 재료 코드로 보강합니다. 분석 실패 시 빈 배열.
 
 성공 응답 예시:
 
@@ -360,11 +361,12 @@ public record PythonMenuAllergyResultDto(
         "modelVersion": "gemini-2.5-flash",
         "ingredients": [
           { "ingredientName": "김치", "ingredientCode": null, "confidence": 0.95 },
-          { "ingredientName": "돼지고기", "ingredientCode": "PORK", "confidence": 0.88 }
+          { "ingredientName": "돼지고기", "ingredientCode": "PORK", "confidence": 0.88 },
+          { "ingredientName": "간장", "ingredientCode": "SOYBEAN", "confidence": 0.81 }
         ],
         "allergies": [
-          { "allergyCode": "SOYBEAN", "confidence": 0.85 },
-          { "allergyCode": "PORK", "confidence": 0.8 }
+          { "allergyCode": "PORK", "confidence": 0.8 },
+          { "allergyCode": "SOYBEAN", "confidence": 0.8 }
         ],
         "spicyLevel": 3
       }
@@ -891,3 +893,4 @@ curl -sS -X POST "https://api.your-domain.com/api/v1/python/menus/analyze" \
 - `AI_001` 응답: `GEMINI_API_KEY` 누락/오타
 - OCR 결과 빈 값: 업로드 이미지 품질/해상도 확인, 메뉴판 crop 후 재시도
 - 크롤링 차단: `CRAWL_SOURCE_ALLOWLIST` 설정값과 실제 도메인 일치 확인
+
