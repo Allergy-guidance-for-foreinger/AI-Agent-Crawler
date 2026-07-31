@@ -618,10 +618,12 @@ def _validate_source_url(source_url: str) -> None:
     hostname = parsed.hostname
     if not hostname:
         raise RuntimeError("sourceUrl hostname이 비어 있습니다.")
-    raw_allowlist = os.environ.get("CRAWL_SOURCE_ALLOWLIST", "").strip()
-    if raw_allowlist:
-        allowlist = {host.strip().lower() for host in raw_allowlist.split(",") if host.strip()}
-    else:
+    raw_allowlist = os.environ.get("CRAWL_SOURCE_ALLOWLIST", "")
+    allowlist = {
+        host.strip().lower() for host in raw_allowlist.split(",") if host.strip()
+    }
+    # 미설정·공백/쉼표만 있는 값도 기본 allowlist로 취급
+    if not allowlist:
         allowlist = set(DEFAULT_SOURCE_ALLOWLIST)
     normalized_host = hostname.lower()
     if normalized_host not in allowlist:

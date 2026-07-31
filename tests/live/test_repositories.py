@@ -37,10 +37,14 @@ def test_crawl_repository_load_menu_table_for_source_delegates(monkeypatch):
 
 def test_crawl_repository_crawl_daily_meals_delegates(monkeypatch):
     repo = CrawlRepository()
+    start = date(2026, 7, 27)
+    end = date(2026, 8, 1)
 
     def fake_crawl(*, cafeteria_name, source_url, start, end):
         assert cafeteria_name == "정보센터식당"
         assert "shop_sqno=35" in source_url
+        assert start == date(2026, 7, 27)
+        assert end == date(2026, 8, 1)
         return [{"mealDate": start.isoformat(), "mealType": "LUNCH", "menus": []}]
 
     monkeypatch.setattr(
@@ -51,8 +55,8 @@ def test_crawl_repository_crawl_daily_meals_delegates(monkeypatch):
     out = repo.crawl_daily_meals(
         cafeteria_name="정보센터식당",
         source_url="https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
-        start=date(2026, 7, 27),
-        end=date(2026, 7, 27),
+        start=start,
+        end=end,
     )
     assert out[0]["mealType"] == "LUNCH"
 

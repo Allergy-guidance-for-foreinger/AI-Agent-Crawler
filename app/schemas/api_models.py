@@ -9,7 +9,12 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.domain.crawler.knu_menu import is_knu_host
+from app.domain.crawler.knu_menu import (
+    MAX_WEEK_FETCHES,
+    SHOP_NAMES,
+    is_knu_host,
+    week_mondays_covering,
+)
 from app.domain.crawler.kumoh_menu import normalize_kumoh_cafeteria_name
 
 T = TypeVar("T")
@@ -34,11 +39,22 @@ class PythonMealCrawlRequest(BaseModel):
     def validate_date_range_and_cafeteria(self):
         if self.startDate > self.endDate:
             raise ValueError("startDate는 endDate보다 이후일 수 없습니다.")
+        if len(week_mondays_covering(self.startDate, self.endDate)) > MAX_WEEK_FETCHES:
+            raise ValueError(
+                f"조회 기간은 최대 {MAX_WEEK_FETCHES}주까지 허용됩니다."
+            )
         host = urlparse(self.sourceUrl).hostname
         if not is_knu_host(host):
             self.cafeteriaName = normalize_kumoh_cafeteria_name(self.cafeteriaName)
         else:
-            self.cafeteriaName = self.cafeteriaName.strip()
+            name = self.cafeteriaName.strip()
+            if name not in SHOP_NAMES.values():
+                raise ValueError(
+                    "지원하지 않는 경북대 식당명입니다. "
+                    "정보센터식당, 복지관 교직원식당, 카페테리아 첨성, GP감꽃식당, "
+                    "공학관교직원식당(외부업체) 중 하나를 사용하세요."
+                )
+            self.cafeteriaName = name
         return self
 
 

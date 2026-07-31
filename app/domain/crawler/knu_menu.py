@@ -10,7 +10,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import requests
 from lxml import html as lhtml
-from lxml.etree import _Element
+from lxml.etree import ParserError, _Element
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ SHOP_NAMES: dict[int, str] = {
 }
 
 SHOP_BY_NAME: dict[str, int] = {name: sqno for sqno, name in SHOP_NAMES.items()}
+MAX_WEEK_FETCHES = 5
 
 _DATE_IN_HEADER_RE = re.compile(r"(\d{1,2})\s*/\s*(\d{1,2})")
 _TIME_RANGE_RE = re.compile(
@@ -59,14 +60,20 @@ def parse_shop_sqno(source_url: str) -> int | None:
 
 
 def resolve_knu_cafeteria_name(cafeteria_name: str, source_url: str) -> str:
-    """요청 식당명을 우선하고, 비어 있으면 URL shop_sqno로 보완합니다."""
-    name = normalize_knu_cafeteria_name(cafeteria_name)
-    if name:
-        return name
+    """shop_sqno 기준 식당명을 확정하고, 요청명이 있으면 일치 여부를 검증합니다."""
     sqno = parse_shop_sqno(source_url)
-    if sqno is not None and sqno in SHOP_NAMES:
-        return SHOP_NAMES[sqno]
-    raise RuntimeError("경북대 식당명을 확인할 수 없습니다.")
+    if sqno is None or sqno not in SHOP_NAMES:
+        raise RuntimeError("경북대 shop_sqno를 확인할 수 없거나 지원하지 않는 식당입니다.")
+    expected = SHOP_NAMES[sqno]
+    name = normalize_knu_cafeteria_name(cafeteria_name)
+    if not name:
+        return expected
+    if name != expected:
+        raise RuntimeError(
+            f"경북대 식당명이 shop_sqno와 일치하지 않습니다: "
+            f"cafeteriaName={name}, expected={expected}(shop_sqno={sqno})"
+        )
+    return expected
 
 
 def with_sel_date(source_url: str, sel_date: date) -> str:
@@ -113,7 +120,11 @@ def _text(el: _Element | None) -> str:
 
 
 def _parse_header_dates(doc: _Element, start: date, end: date) -> list[date | None]:
-    """주간 헤더 테이블에서 월~토 날짜 목록을 추출합니다."""
+    """주간 헤더 테이블에서 월~토 날짜 목록을 추출합니다.
+
+    날짜가 없는 선행 th(분류/구분 등)는 라벨 문자열이 아니라 구조적으로 제거해
+    데이터 셀 인덱스와 맞춥니다.
+    """
     header_tables = doc.xpath("//table[contains(@class,'tstyle_me')]")
     if not header_tables:
         header_tables = doc.xpath("//table[.//th[contains(., '월')]]")
@@ -125,8 +136,6 @@ def _parse_header_dates(doc: _Element, start: date, end: date) -> list[date | No
     candidate_years = [start.year] + ([end.year] if end.year != start.year else [])
     for th in ths:
         label = _text(th)
-        if "분류" in label or "주간" in label:
-            continue
         match = _DATE_IN_HEADER_RE.search(label)
         if not match:
             dates.append(None)
@@ -145,6 +154,10 @@ def _parse_header_dates(doc: _Element, start: date, end: date) -> list[date | No
                 resolved = candidate
                 break
         dates.append(resolved)
+
+    # 선행 비날짜 열 제거(분류/구분/주간 등 라벨 변경에도 정렬 유지)
+    while dates and dates[0] is None:
+        dates.pop(0)
     return dates
 
 
@@ -245,7 +258,15 @@ def parse_knu_week_html(
     end: date,
 ) -> list[dict[str, Any]]:
     """단일 주 HTML → meals DTO 리스트(요청 기간으로 필터)."""
-    doc = lhtml.fromstring(html)
+    if not (html or "").strip():
+        logger.warning("knu html empty cafeteria=%s", cafeteria_name)
+        return []
+    try:
+        doc = lhtml.fromstring(html)
+    except ParserError:
+        logger.warning("knu html parse failed cafeteria=%s", cafeteria_name)
+        return []
+
     header_dates = _parse_header_dates(doc, start, end)
     if not header_dates:
         logger.warning("knu header dates missing cafeteria=%s", cafeteria_name)
@@ -264,6 +285,13 @@ def parse_knu_week_html(
             continue
         # 보통 데이터 행 1개, 셀 = 월~토
         cells = data_rows[0].xpath("./td")
+        if len(cells) != len(header_dates):
+            logger.warning(
+                "knu header/cell count mismatch cafeteria=%s headers=%s cells=%s",
+                cafeteria_name,
+                len(header_dates),
+                len(cells),
+            )
         for col_idx, td in enumerate(cells):
             if col_idx >= len(header_dates):
                 break
@@ -332,12 +360,32 @@ def build_knu_daily_meals(
 ) -> list[dict[str, Any]]:
     """기간을 덮는 주차별로 fetch 후 meals를 병합합니다."""
     name = resolve_knu_cafeteria_name(cafeteria_name, source_url)
+    mondays = week_mondays_covering(start, end)
+    if len(mondays) > MAX_WEEK_FETCHES:
+        raise RuntimeError(
+            f"경북대 식단 조회 기간은 최대 {MAX_WEEK_FETCHES}주까지 허용됩니다."
+        )
+
     merged: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
+    fetch_ok = 0
+    last_fetch_error: BaseException | None = None
 
-    for monday in week_mondays_covering(start, end):
+    for monday in mondays:
         week_url = with_sel_date(source_url, monday)
-        html = fetch_html(week_url)
+        try:
+            html = fetch_html(week_url)
+            fetch_ok += 1
+        except (requests.exceptions.RequestException, OSError) as e:
+            last_fetch_error = e
+            logger.warning(
+                "knu week fetch failed cafeteria=%s monday=%s: %s",
+                name,
+                monday.isoformat(),
+                e,
+            )
+            continue
+
         week_meals = parse_knu_week_html(
             html,
             cafeteria_name=name,
@@ -350,6 +398,9 @@ def build_knu_daily_meals(
                 continue
             seen.add(key)
             merged.append(meal)
+
+    if fetch_ok == 0 and last_fetch_error is not None:
+        raise last_fetch_error
 
     merged.sort(
         key=lambda item: (

@@ -188,12 +188,14 @@ public record PythonMealCrawlRequest(
 
 | schoolName | cafeteriaName | sourceUrl |
 |---|---|---|
-| 금오공과대학교 | 일품식당 / 정찬식당 / 분식당 | `https://www.kumoh.ac.kr/ko/restaurant0{1,2,4}.do` |
-| 경북대학교 | 정보센터식당 | `...?shop_sqno=35` |
-| 경북대학교 | 복지관 교직원식당 | `...?shop_sqno=36` |
-| 경북대학교 | 카페테리아 첨성 | `...?shop_sqno=37` |
-| 경북대학교 | GP감꽃식당 | `...?shop_sqno=46` |
-| 경북대학교 | 공학관교직원식당(외부업체) | `...?shop_sqno=85` |
+| 금오공과대학교 | 일품식당 | `https://www.kumoh.ac.kr/ko/restaurant01.do` |
+| 금오공과대학교 | 정찬식당 | `https://www.kumoh.ac.kr/ko/restaurant02.do` |
+| 금오공과대학교 | 분식당 | `https://www.kumoh.ac.kr/ko/restaurant04.do` |
+| 경북대학교 | 정보센터식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35` |
+| 경북대학교 | 복지관 교직원식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=36` |
+| 경북대학교 | 카페테리아 첨성 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=37` |
+| 경북대학교 | GP감꽃식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=46` |
+| 경북대학교 | 공학관교직원식당(외부업체) | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=85` |
 
 ### 응답 DTO
 
