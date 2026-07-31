@@ -22,6 +22,11 @@ from pandas.errors import ParserError
 
 from app.config.runtime import ALLOWED_ACCEPT_LANGUAGES, ServiceConfig
 from app.domain.allergy.agent import analyze_menus_with_gemini, iter_menu_entries, results_to_dataframe
+from app.domain.crawler.knu_menu import (
+    KNU_HOSTS,
+    build_knu_daily_meals,
+    is_knu_host,
+)
 from app.domain.crawler.kumoh_menu import MENU_ITEM_DELIM, load_menus, normalize_kumoh_cafeteria_name, parse_table_from_html
 from app.domain.crawler.push_menus import post_menu_ingest
 from app.services.allergen_mapping import (
@@ -33,7 +38,11 @@ from utils.json_extract import extract_json_object
 from user_features.i18n_summary import summarize_for_locale
 from user_features.payloads import build_extended_menu_payload
 
-DEFAULT_SOURCE_ALLOWLIST = {"www.kumoh.ac.kr", "kumoh.ac.kr"}
+DEFAULT_SOURCE_ALLOWLIST = {
+    "www.kumoh.ac.kr",
+    "kumoh.ac.kr",
+    *KNU_HOSTS,
+}
 MEAL_TYPE_ORDER = {"BREAKFAST": 0, "LUNCH": 1, "DINNER": 2}
 logger = logging.getLogger(__name__)
 
@@ -532,9 +541,37 @@ def build_daily_meals(*, cafeteria_name: str, table: Any, start: date, end: date
     return _apply_cafeteria_meal_rules(cafeteria_name, meals)
 
 
+def crawl_daily_meals(
+    *,
+    cafeteria_name: str,
+    source_url: str,
+    start: date,
+    end: date,
+) -> list[dict[str, Any]]:
+    """학교별 어댑터로 식단을 크롤해 표준 meals DTO를 반환합니다."""
+    _validate_source_url(source_url)
+    hostname = (urlparse(source_url).hostname or "").lower()
+    if is_knu_host(hostname):
+        return build_knu_daily_meals(
+            cafeteria_name=cafeteria_name,
+            source_url=source_url,
+            start=start,
+            end=end,
+        )
+
+    cafeteria_name = normalize_kumoh_cafeteria_name(cafeteria_name)
+    table = load_menu_table_for_source(cafeteria_name=cafeteria_name, source_url=source_url)
+    return build_daily_meals(cafeteria_name=cafeteria_name, table=table, start=start, end=end)
+
+
 def load_menu_table_for_source(*, cafeteria_name: str, source_url: str) -> pd.DataFrame:
+    """금오공대 HTML → DataFrame. 경북대는 crawl_daily_meals를 사용하세요."""
     cafeteria_name = normalize_kumoh_cafeteria_name(cafeteria_name)
     _validate_source_url(source_url)
+    if is_knu_host(urlparse(source_url).hostname):
+        raise RuntimeError(
+            "경북대 sourceUrl은 DataFrame 로드를 지원하지 않습니다. crawl_daily_meals를 사용하세요."
+        )
     source_fetch_error: BaseException | None = None
 
     try:
@@ -581,10 +618,12 @@ def _validate_source_url(source_url: str) -> None:
     hostname = parsed.hostname
     if not hostname:
         raise RuntimeError("sourceUrl hostname이 비어 있습니다.")
-    raw_allowlist = os.environ.get("CRAWL_SOURCE_ALLOWLIST", "").strip()
-    if raw_allowlist:
-        allowlist = {host.strip().lower() for host in raw_allowlist.split(",") if host.strip()}
-    else:
+    raw_allowlist = os.environ.get("CRAWL_SOURCE_ALLOWLIST", "")
+    allowlist = {
+        host.strip().lower() for host in raw_allowlist.split(",") if host.strip()
+    }
+    # 미설정·공백/쉼표만 있는 값도 기본 allowlist로 취급
+    if not allowlist:
         allowlist = set(DEFAULT_SOURCE_ALLOWLIST)
     normalized_host = hostname.lower()
     if normalized_host not in allowlist:
@@ -878,6 +917,7 @@ __all__ = [
     "auth_headers",
     "analyze_food_text",
     "build_daily_meals",
+    "crawl_daily_meals",
     "extract_menu_text_from_image",
     "extract_date_from_column",
     "identify_food_from_image",

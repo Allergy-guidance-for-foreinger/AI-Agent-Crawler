@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
@@ -11,12 +10,13 @@ from app.config.runtime import load_runtime_context
 
 
 def test_spring_native_crawl_meals_returns_unwrapped_json(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _fake_load(self, cafeteria_name: str, source_url: str):
-        return pd.DataFrame()
+    def _fake_crawl(self, *, cafeteria_name: str, source_url: str, start, end):
+        assert cafeteria_name == "일품식당"
+        return []
 
     monkeypatch.setattr(
-        "app.services.live_service.LiveService.load_menu_table_for_source",
-        _fake_load,
+        "app.services.live_service.LiveService.crawl_daily_meals",
+        _fake_crawl,
     )
     with TestClient(create_app(load_runtime_context())) as client:
         resp = client.post(

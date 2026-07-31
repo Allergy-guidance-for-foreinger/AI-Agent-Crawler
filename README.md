@@ -166,11 +166,36 @@ public record PythonMealCrawlRequest(
 {
   "schoolName": "금오공과대학교",
   "cafeteriaName": "일품식당",
-  "sourceUrl": "https://example.com/menu",
+  "sourceUrl": "https://www.kumoh.ac.kr/ko/restaurant01.do",
   "startDate": "2026-04-15",
   "endDate": "2026-04-21"
 }
 ```
+
+경북대 예시:
+
+```json
+{
+  "schoolName": "경북대학교",
+  "cafeteriaName": "정보센터식당",
+  "sourceUrl": "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
+  "startDate": "2026-07-27",
+  "endDate": "2026-08-01"
+}
+```
+
+지원 학교/식당:
+
+| schoolName | cafeteriaName | sourceUrl |
+|---|---|---|
+| 금오공과대학교 | 일품식당 | `https://www.kumoh.ac.kr/ko/restaurant01.do` |
+| 금오공과대학교 | 정찬식당 | `https://www.kumoh.ac.kr/ko/restaurant02.do` |
+| 금오공과대학교 | 분식당 | `https://www.kumoh.ac.kr/ko/restaurant04.do` |
+| 경북대학교 | 정보센터식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35` |
+| 경북대학교 | 복지관 교직원식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=36` |
+| 경북대학교 | 카페테리아 첨성 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=37` |
+| 경북대학교 | GP감꽃식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=46` |
+| 경북대학교 | 공학관교직원식당(외부업체) | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=85` |
 
 ### 응답 DTO
 
@@ -230,9 +255,13 @@ public record PythonCrawledMenuDto(
 }
 ```
 
-> **메뉴 분리 규칙**: HTML `<li>` 태그 기준으로 메뉴를 개별 분리합니다.
+> **메뉴 분리 규칙 (금오)**: HTML `<li>` 태그 기준으로 메뉴를 개별 분리합니다.
 > 셀에 포함된 시간 범위(`11:00~14:00`), 메타정보(`[천원의 아침밥]`), 안내문(`*재학생만 해당`) 등은 자동 필터링됩니다.
 > `cornerName`은 셀의 첫 번째 항목(조식, 일품요리, 중식 등)에서 추출되며, `mealType`도 이로부터 추론됩니다.
+>
+> **메뉴 분리 규칙 (경북대)**: `week_table`의 `ul.menu_im > li`(가격 단위)로 메뉴를 분리합니다.
+> `cornerName`은 셀의 `특식`/`정식` 배지에서 가져오고, `mealType`은 중식/석식 테이블 라벨로 결정합니다.
+> 기간이 여러 주에 걸치면 `selDate`로 주차별 페이지를 조회해 병합합니다.
 
 실패 응답 예시:
 

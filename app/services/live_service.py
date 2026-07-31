@@ -49,6 +49,21 @@ class LiveService:
     def run_weekly_crawl_once(self) -> dict[str, Any]:
         return self.crawl_repo.run_weekly_crawl_once(self.cfg, self.client)
 
+    def crawl_daily_meals(
+        self,
+        *,
+        cafeteria_name: str,
+        source_url: str,
+        start: date,
+        end: date,
+    ) -> list[dict[str, Any]]:
+        return self.crawl_repo.crawl_daily_meals(
+            cafeteria_name=cafeteria_name,
+            source_url=source_url,
+            start=start,
+            end=end,
+        )
+
     def load_menu_table_for_source(self, cafeteria_name: str, source_url: str):
         query = MenuCrawlQuery(cafeteria_name=cafeteria_name, source_url=source_url)
         return self.crawl_repo.load_menu_table_for_source(query)
