@@ -893,3 +893,4 @@ curl -sS -X POST "https://api.your-domain.com/api/v1/python/menus/analyze" \
 - `AI_001` 응답: `GEMINI_API_KEY` 누락/오타
 - OCR 결과 빈 값: 업로드 이미지 품질/해상도 확인, 메뉴판 crop 후 재시도
 - 크롤링 차단: `CRAWL_SOURCE_ALLOWLIST` 설정값과 실제 도메인 일치 확인
+
