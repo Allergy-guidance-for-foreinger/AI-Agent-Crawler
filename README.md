@@ -184,6 +184,18 @@ public record PythonMealCrawlRequest(
 }
 ```
 
+경국대 예시:
+
+```json
+{
+  "schoolName": "국립경국대학교",
+  "cafeteriaName": "이룸관(안동, 학생식당)",
+  "sourceUrl": "https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82",
+  "startDate": "2026-07-20",
+  "endDate": "2026-07-24"
+}
+```
+
 지원 학교/식당:
 
 | schoolName | cafeteriaName | sourceUrl |
@@ -196,6 +208,10 @@ public record PythonMealCrawlRequest(
 | 경북대학교 | 카페테리아 첨성 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=37` |
 | 경북대학교 | GP감꽃식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=46` |
 | 경북대학교 | 공학관교직원식당(외부업체) | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=85` |
+| 국립경국대학교 | 이룸관(안동, 학생식당) | `https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82` |
+| 국립경국대학교 | 채움관(안동, 교직원식당) | `https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=222` |
+| 국립경국대학교 | 양식코너(안동) | `https://www.gknu.ac.kr/main/html.do?menu_idx=317` |
+| 국립경국대학교 | 학생식당(예천) | `https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=629` |
 
 ### 응답 DTO
 
@@ -262,6 +278,10 @@ public record PythonCrawledMenuDto(
 > **메뉴 분리 규칙 (경북대)**: `week_table`의 `ul.menu_im > li`(가격 단위)로 메뉴를 분리합니다.
 > `cornerName`은 셀의 `특식`/`정식` 배지에서 가져오고, `mealType`은 중식/석식 테이블 라벨로 결정합니다.
 > 기간이 여러 주에 걸치면 `selDate`로 주차별 페이지를 조회해 병합합니다.
+>
+> **메뉴 분리 규칙 (경국대)**: 일별 AJAX(`foodMenu/view.do`)의 `dl/dt/dd`에서 조식·중식·석식을 파싱하고 `<br>` 단위로 메뉴를 분리합니다.
+> 양식코너는 고정 가격표 HTML을 1회 조회한 뒤 요청 기간 각 날짜에 `LUNCH`로 동일 메뉴를 반복합니다.
+> `미 운 영`·빈 칸은 제외합니다.
 
 실패 응답 예시:
 
