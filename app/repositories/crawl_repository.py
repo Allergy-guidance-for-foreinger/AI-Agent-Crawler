@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from google import genai
 
+from app.domain.crawler.gknu_menu import is_gknu_host
 from app.domain.crawler.knu_menu import is_knu_host
 from app.domain.crawler.kumoh_menu import normalize_kumoh_cafeteria_name
 from app.domain.entities import MenuCrawlQuery
@@ -39,7 +40,8 @@ class CrawlRepository:
 
     def load_menu_table_for_source(self, query: MenuCrawlQuery):
         cafeteria_name = query.cafeteria_name
-        if not is_knu_host(urlparse(query.source_url).hostname):
+        host = urlparse(query.source_url).hostname
+        if not is_knu_host(host) and not is_gknu_host(host):
             cafeteria_name = normalize_kumoh_cafeteria_name(cafeteria_name)
         return load_menu_table_for_source(
             cafeteria_name=cafeteria_name,

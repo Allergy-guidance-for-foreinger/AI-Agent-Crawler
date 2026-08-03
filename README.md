@@ -160,42 +160,36 @@ public record PythonMealCrawlRequest(
 ) { }
 ```
 
-요청 예시:
+### 지원 학교·식당·sourceUrl
 
-```json
-{
-  "schoolName": "금오공과대학교",
-  "cafeteriaName": "일품식당",
-  "sourceUrl": "https://www.kumoh.ac.kr/ko/restaurant01.do",
-  "startDate": "2026-04-15",
-  "endDate": "2026-04-21"
-}
-```
+`sourceUrl` 호스트로 학교 어댑터를 선택합니다. `cafeteriaName`은 아래 표와 일치해야 합니다(금오는 구명칭 학생식당·교직원식당을 자동 치환).
 
-경북대 예시:
+#### 금오공과대학교 (`www.kumoh.ac.kr`)
 
-```json
-{
-  "schoolName": "경북대학교",
-  "cafeteriaName": "정보센터식당",
-  "sourceUrl": "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
-  "startDate": "2026-07-27",
-  "endDate": "2026-08-01"
-}
-```
+| cafeteriaName | sourceUrl |
+|---|---|
+| 일품식당 | `https://www.kumoh.ac.kr/ko/restaurant01.do` |
+| 정찬식당 | `https://www.kumoh.ac.kr/ko/restaurant02.do` |
+| 분식당 | `https://www.kumoh.ac.kr/ko/restaurant04.do` |
 
-지원 학교/식당:
+#### 경북대학교 (`coop.knu.ac.kr`)
 
-| schoolName | cafeteriaName | sourceUrl |
-|---|---|---|
-| 금오공과대학교 | 일품식당 | `https://www.kumoh.ac.kr/ko/restaurant01.do` |
-| 금오공과대학교 | 정찬식당 | `https://www.kumoh.ac.kr/ko/restaurant02.do` |
-| 금오공과대학교 | 분식당 | `https://www.kumoh.ac.kr/ko/restaurant04.do` |
-| 경북대학교 | 정보센터식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35` |
-| 경북대학교 | 복지관 교직원식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=36` |
-| 경북대학교 | 카페테리아 첨성 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=37` |
-| 경북대학교 | GP감꽃식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=46` |
-| 경북대학교 | 공학관교직원식당(외부업체) | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=85` |
+| cafeteriaName | sourceUrl |
+|---|---|
+| 정보센터식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35` |
+| 복지관 교직원식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=36` |
+| 카페테리아 첨성 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=37` |
+| GP감꽃식당 | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=46` |
+| 공학관교직원식당(외부업체) | `https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=85` |
+
+#### 국립경국대학교 (`www.gknu.ac.kr`)
+
+| cafeteriaName | sourceUrl |
+|---|---|
+| 이룸관(안동, 학생식당) | `https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82` |
+| 채움관(안동, 교직원식당) | `https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=222` |
+| 양식코너(안동) | `https://www.gknu.ac.kr/main/html.do?menu_idx=317` |
+| 학생식당(예천) | `https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=629` |
 
 ### 응답 DTO
 
@@ -222,7 +216,25 @@ public record PythonCrawledMenuDto(
 ) { }
 ```
 
-성공 응답 예시:
+### 학교별 호출·응답 예시
+
+아래는 `POST /api/v1/python/meals/crawl` 기준입니다. Unwrapped(`POST /api/v1/crawl/meals`)는 응답에서 `success`/`data` 래핑 없이 `data` 본문만 반환합니다. `meals` 일부만 축약해 표기했습니다.
+
+#### 금오공과대학교
+
+요청:
+
+```json
+{
+  "schoolName": "금오공과대학교",
+  "cafeteriaName": "일품식당",
+  "sourceUrl": "https://www.kumoh.ac.kr/ko/restaurant01.do",
+  "startDate": "2026-04-15",
+  "endDate": "2026-04-21"
+}
+```
+
+응답:
 
 ```json
 {
@@ -230,7 +242,7 @@ public record PythonCrawledMenuDto(
   "data": {
     "schoolName": "금오공과대학교",
     "cafeteriaName": "일품식당",
-    "sourceUrl": "https://example.com/menu",
+    "sourceUrl": "https://www.kumoh.ac.kr/ko/restaurant01.do",
     "startDate": "2026-04-15",
     "endDate": "2026-04-21",
     "meals": [
@@ -255,6 +267,103 @@ public record PythonCrawledMenuDto(
 }
 ```
 
+#### 경북대학교
+
+요청:
+
+```json
+{
+  "schoolName": "경북대학교",
+  "cafeteriaName": "정보센터식당",
+  "sourceUrl": "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
+  "startDate": "2026-07-27",
+  "endDate": "2026-07-27"
+}
+```
+
+응답:
+
+```json
+{
+  "success": true,
+  "data": {
+    "schoolName": "경북대학교",
+    "cafeteriaName": "정보센터식당",
+    "sourceUrl": "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
+    "startDate": "2026-07-27",
+    "endDate": "2026-07-27",
+    "meals": [
+      {
+        "mealDate": "2026-07-27",
+        "mealType": "LUNCH",
+        "menus": [
+          { "cornerName": "특식", "displayOrder": 1, "menuName": "육전비빔국수★ 망고쥬스" },
+          { "cornerName": "특식", "displayOrder": 2, "menuName": "동파육볶음밥★ 군만두" },
+          { "cornerName": "특식", "displayOrder": 3, "menuName": "불고기비빔밥★" }
+        ]
+      },
+      {
+        "mealDate": "2026-07-27",
+        "mealType": "DINNER",
+        "menus": [
+          { "cornerName": "특식", "displayOrder": 1, "menuName": "촌돼지찌개★" },
+          { "cornerName": "특식", "displayOrder": 2, "menuName": "오삼불고기덮밥★" },
+          { "cornerName": "특식", "displayOrder": 3, "menuName": "순살돈가스★" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### 국립경국대학교
+
+요청:
+
+```json
+{
+  "schoolName": "국립경국대학교",
+  "cafeteriaName": "이룸관(안동, 학생식당)",
+  "sourceUrl": "https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82",
+  "startDate": "2026-07-24",
+  "endDate": "2026-07-24"
+}
+```
+
+응답:
+
+```json
+{
+  "success": true,
+  "data": {
+    "schoolName": "국립경국대학교",
+    "cafeteriaName": "이룸관(안동, 학생식당)",
+    "sourceUrl": "https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82",
+    "startDate": "2026-07-24",
+    "endDate": "2026-07-24",
+    "meals": [
+      {
+        "mealDate": "2026-07-24",
+        "mealType": "BREAKFAST",
+        "menus": [
+          { "cornerName": "조식", "displayOrder": 1, "menuName": "[천원의 아침밥]" }
+        ]
+      },
+      {
+        "mealDate": "2026-07-24",
+        "mealType": "LUNCH",
+        "menus": [
+          { "cornerName": "중식", "displayOrder": 1, "menuName": "[천원의 브런치]" },
+          { "cornerName": "중식", "displayOrder": 2, "menuName": "흑미밥" },
+          { "cornerName": "중식", "displayOrder": 3, "menuName": "쇠고기미역국" },
+          { "cornerName": "중식", "displayOrder": 4, "menuName": "꿔바로우" }
+        ]
+      }
+    ]
+  }
+}
+```
+
 > **메뉴 분리 규칙 (금오)**: HTML `<li>` 태그 기준으로 메뉴를 개별 분리합니다.
 > 셀에 포함된 시간 범위(`11:00~14:00`), 메타정보(`[천원의 아침밥]`), 안내문(`*재학생만 해당`) 등은 자동 필터링됩니다.
 > `cornerName`은 셀의 첫 번째 항목(조식, 일품요리, 중식 등)에서 추출되며, `mealType`도 이로부터 추론됩니다.
@@ -262,6 +371,10 @@ public record PythonCrawledMenuDto(
 > **메뉴 분리 규칙 (경북대)**: `week_table`의 `ul.menu_im > li`(가격 단위)로 메뉴를 분리합니다.
 > `cornerName`은 셀의 `특식`/`정식` 배지에서 가져오고, `mealType`은 중식/석식 테이블 라벨로 결정합니다.
 > 기간이 여러 주에 걸치면 `selDate`로 주차별 페이지를 조회해 병합합니다.
+>
+> **메뉴 분리 규칙 (경국대)**: 일별 AJAX(`foodMenu/view.do`)의 `dl/dt/dd`에서 조식·중식·석식을 파싱하고 `<br>` 단위로 메뉴를 분리합니다.
+> 양식코너는 고정 가격표 HTML을 1회 조회한 뒤 요청 기간의 평일(월~금)에만 `LUNCH`로 동일 메뉴를 반복합니다(주말 제외).
+> `미 운 영`·빈 칸은 제외합니다.
 
 실패 응답 예시:
 
