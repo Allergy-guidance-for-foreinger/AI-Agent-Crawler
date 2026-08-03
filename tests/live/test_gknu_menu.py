@@ -135,7 +135,7 @@ class TestGknuBuildDailyMeals:
         assert any(m["mealDate"] == "2026-07-23" for m in meals)
         assert not any(m["mealDate"] == "2026-07-24" for m in meals)
 
-    def test_western_replicates_across_dates(self, western_html: str):
+    def test_western_replicates_across_weekdays(self, western_html: str):
         with patch("app.domain.crawler.gknu_menu.fetch_html", return_value=western_html) as mocked:
             meals = build_gknu_daily_meals(
                 cafeteria_name="양식코너(안동)",
@@ -147,6 +147,32 @@ class TestGknuBuildDailyMeals:
         assert len(meals) == 2
         assert {m["mealType"] for m in meals} == {"LUNCH"}
         assert meals[0]["menus"][0]["menuName"] == meals[1]["menus"][0]["menuName"]
+
+    def test_western_skips_weekends(self, western_html: str):
+        # 2026-07-24(금) ~ 2026-07-26(일)
+        with patch("app.domain.crawler.gknu_menu.fetch_html", return_value=western_html):
+            meals = build_gknu_daily_meals(
+                cafeteria_name="양식코너(안동)",
+                source_url="https://www.gknu.ac.kr/main/html.do?menu_idx=317",
+                start=date(2026, 7, 24),
+                end=date(2026, 7, 26),
+            )
+        assert {m["mealDate"] for m in meals} == {"2026-07-24"}
+
+    def test_day_fetch_budget_stops_early(self, view_73_html: str, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr("app.domain.crawler.gknu_menu.DAY_FETCH_BUDGET_SECONDS", 0.0)
+        with patch(
+            "app.domain.crawler.gknu_menu.fetch_html",
+            return_value=view_73_html,
+        ) as mocked:
+            meals = build_gknu_daily_meals(
+                cafeteria_name="이룸관(안동, 학생식당)",
+                source_url="https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82",
+                start=date(2026, 7, 23),
+                end=date(2026, 7, 24),
+            )
+        assert mocked.call_count == 0
+        assert meals == []
 
     def test_crawl_daily_meals_routes_gknu(self, view_73_html: str, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv("CRAWL_SOURCE_ALLOWLIST", raising=False)

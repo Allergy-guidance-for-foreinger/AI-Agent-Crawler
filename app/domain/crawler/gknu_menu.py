@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from datetime import date, timedelta
 from typing import Any
 from urllib.parse import parse_qsl, urljoin, urlparse
@@ -19,6 +20,9 @@ logger = logging.getLogger(__name__)
 GKNU_HOSTS = frozenset({"www.gknu.ac.kr", "gknu.ac.kr"})
 GKNU_ORIGIN = "https://www.gknu.ac.kr"
 FOOD_VIEW_PATH = "/main/module/foodMenu/view.do"
+# 일별 AJAX는 날짜 수만큼 호출되므로 knu(주 단위)보다 짧게 잡습니다.
+DAY_FETCH_TIMEOUT = 5.0
+DAY_FETCH_BUDGET_SECONDS = 45.0
 
 # menu_idx → 식당명
 MENU_IDX_NAMES: dict[int, str] = {
@@ -77,7 +81,7 @@ def resolve_gknu_cafeteria_name(cafeteria_name: str, source_url: str) -> str:
     return expected
 
 
-def fetch_html(url: str, *, timeout: float = 15.0, referer: str | None = None) -> str:
+def fetch_html(url: str, *, timeout: float = DAY_FETCH_TIMEOUT, referer: str | None = None) -> str:
     headers = {"User-Agent": "Mozilla/5.0 (compatible; AI-Agent-Crawler/1.0)"}
     if referer:
         headers["Referer"] = referer
@@ -261,6 +265,9 @@ def build_gknu_daily_meals(
         if not template:
             return meals
         for d in _iter_dates(start, end):
+            # 양식코너 안내: 학기중 운영, 주말·공휴일 휴무 (공휴일 캘린더는 미적용)
+            if d.weekday() >= 5:
+                continue
             meals.append(
                 {
                     "mealDate": d.isoformat(),
@@ -285,11 +292,27 @@ def build_gknu_daily_meals(
     merged: list[dict[str, Any]] = []
     fetch_ok = 0
     last_fetch_error: BaseException | None = None
+    started = time.monotonic()
 
     for d in _iter_dates(start, end):
+        elapsed = time.monotonic() - started
+        if elapsed >= DAY_FETCH_BUDGET_SECONDS:
+            logger.warning(
+                "gknu day fetch budget exhausted cafeteria=%s stopped_before=%s "
+                "elapsed=%.1fs budget=%.1fs",
+                name,
+                d.isoformat(),
+                elapsed,
+                DAY_FETCH_BUDGET_SECONDS,
+            )
+            break
         url = food_view_url(manage_idx, d)
         try:
-            html = fetch_html(url, referer=referer or source_url)
+            html = fetch_html(
+                url,
+                timeout=DAY_FETCH_TIMEOUT,
+                referer=referer or source_url,
+            )
             fetch_ok += 1
         except (requests.exceptions.RequestException, OSError) as e:
             last_fetch_error = e
