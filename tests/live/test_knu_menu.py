@@ -11,6 +11,7 @@ import requests
 
 from app.domain.crawler.knu_menu import (
     build_knu_daily_meals,
+    normalize_knu_source_url,
     parse_knu_week_html,
     resolve_knu_cafeteria_name,
     week_mondays_covering,
@@ -131,6 +132,21 @@ class TestKnuHelpers:
         assert "shop_sqno=35" in url
         assert "selDate=2026-07-27" in url
 
+    def test_normalize_short_source_url(self):
+        assert (
+            normalize_knu_source_url("https://coop.knu.ac.kr/?shop_sqno=35")
+            == "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35"
+        )
+        # 이미 정규 경로면 유지
+        full = "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35"
+        assert normalize_knu_source_url(full) == full
+
+    def test_with_sel_date_normalizes_short_url(self):
+        url = with_sel_date("https://coop.knu.ac.kr/?shop_sqno=35", date(2026, 8, 24))
+        assert "/sub03/sub01_01.html" in url
+        assert "shop_sqno=35" in url
+        assert "selDate=2026-08-24" in url
+
     def test_resolve_rejects_name_sqno_mismatch(self):
         with pytest.raises(RuntimeError, match="일치하지 않습니다"):
             resolve_knu_cafeteria_name(
@@ -157,6 +173,22 @@ class TestKnuBuildDailyMeals:
         assert mocked.call_count == 1
         assert "selDate=2026-07-27" in mocked.call_args.args[0]
         assert len(meals) == 4
+
+    def test_build_accepts_short_source_url(self, shop35_html: str):
+        with patch(
+            "app.domain.crawler.knu_menu.fetch_html",
+            return_value=shop35_html,
+        ) as mocked:
+            meals = build_knu_daily_meals(
+                cafeteria_name="정보센터식당",
+                source_url="https://coop.knu.ac.kr/?shop_sqno=35",
+                start=date(2026, 7, 27),
+                end=date(2026, 7, 27),
+            )
+        assert mocked.call_count == 1
+        assert "/sub03/sub01_01.html" in mocked.call_args.args[0]
+        assert "shop_sqno=35" in mocked.call_args.args[0]
+        assert len(meals) == 2
 
     def test_partial_week_fetch_failure_keeps_success(self, shop35_html: str):
         calls = {"n": 0}
