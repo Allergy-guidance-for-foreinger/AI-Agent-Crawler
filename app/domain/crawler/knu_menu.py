@@ -27,6 +27,9 @@ SHOP_NAMES: dict[int, str] = {
 
 SHOP_BY_NAME: dict[str, int] = {name: sqno for sqno, name in SHOP_NAMES.items()}
 MAX_WEEK_FETCHES = 5
+# coop.knu.ac.kr 주간 페이지는 selDate부터 연속 6일(헤더 6칸)을 보여 줍니다.
+# 헤더의 월~토 라벨은 요일명이 아니라 칸 순서 표시입니다.
+KNU_PAGE_DAYS = 6
 
 _DATE_IN_HEADER_RE = re.compile(r"(\d{1,2})\s*/\s*(\d{1,2})")
 _TIME_RANGE_RE = re.compile(
@@ -84,6 +87,7 @@ def with_sel_date(source_url: str, sel_date: date) -> str:
 
 
 def week_mondays_covering(start: date, end: date) -> list[date]:
+    """요청 기간을 덮는 월요일 목록(호환용). 실제 fetch는 week_sel_dates_covering을 사용하세요."""
     if start > end:
         return []
     monday = start - timedelta(days=start.weekday())
@@ -92,6 +96,22 @@ def week_mondays_covering(start: date, end: date) -> list[date]:
     while cur <= end:
         out.append(cur)
         cur += timedelta(days=7)
+    return out
+
+
+def week_sel_dates_covering(start: date, end: date) -> list[date]:
+    """요청 기간을 덮는 selDate 앵커 목록.
+
+    경북대 페이지는 selDate를 첫 칸 날짜로 두고 이후 5일을 더해 총 6일을 표시합니다.
+    월요일 고정이 아니므로, start부터 KNU_PAGE_DAYS 간격으로 조회합니다.
+    """
+    if start > end:
+        return []
+    out: list[date] = []
+    cur = start
+    while cur <= end:
+        out.append(cur)
+        cur += timedelta(days=KNU_PAGE_DAYS)
     return out
 
 
@@ -120,7 +140,7 @@ def _text(el: _Element | None) -> str:
 
 
 def _parse_header_dates(doc: _Element, start: date, end: date) -> list[date | None]:
-    """주간 헤더 테이블에서 월~토 날짜 목록을 추출합니다.
+    """주간 헤더 테이블에서 6칸 날짜 목록을 추출합니다.
 
     날짜가 없는 선행 th(분류/구분 등)는 라벨 문자열이 아니라 구조적으로 제거해
     데이터 셀 인덱스와 맞춥니다.
@@ -358,10 +378,10 @@ def build_knu_daily_meals(
     start: date,
     end: date,
 ) -> list[dict[str, Any]]:
-    """기간을 덮는 주차별로 fetch 후 meals를 병합합니다."""
+    """기간을 덮는 selDate 창별로 fetch 후 meals를 병합합니다."""
     name = resolve_knu_cafeteria_name(cafeteria_name, source_url)
-    mondays = week_mondays_covering(start, end)
-    if len(mondays) > MAX_WEEK_FETCHES:
+    sel_dates = week_sel_dates_covering(start, end)
+    if len(sel_dates) > MAX_WEEK_FETCHES:
         raise RuntimeError(
             f"경북대 식단 조회 기간은 최대 {MAX_WEEK_FETCHES}주까지 허용됩니다."
         )
@@ -371,17 +391,17 @@ def build_knu_daily_meals(
     fetch_ok = 0
     last_fetch_error: BaseException | None = None
 
-    for monday in mondays:
-        week_url = with_sel_date(source_url, monday)
+    for sel_date in sel_dates:
+        week_url = with_sel_date(source_url, sel_date)
         try:
             html = fetch_html(week_url)
             fetch_ok += 1
         except (requests.exceptions.RequestException, OSError) as e:
             last_fetch_error = e
             logger.warning(
-                "knu week fetch failed cafeteria=%s monday=%s: %s",
+                "knu week fetch failed cafeteria=%s selDate=%s: %s",
                 name,
-                monday.isoformat(),
+                sel_date.isoformat(),
                 e,
             )
             continue
