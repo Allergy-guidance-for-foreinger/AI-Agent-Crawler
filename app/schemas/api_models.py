@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.domain.crawler.gknu_menu import MENU_IDX_NAMES, is_gknu_host
 from app.domain.crawler.knu_menu import (
     MAX_WEEK_FETCHES,
     SHOP_NAMES,
@@ -28,7 +29,8 @@ class PythonMealCrawlRequest(BaseModel):
         description=(
             "식당명. 금오: 일품식당/정찬식당/분식당(구명칭 학생식당·교직원식당 자동 치환). "
             "경북대: 정보센터식당, 복지관 교직원식당, 카페테리아 첨성, GP감꽃식당, "
-            "공학관교직원식당(외부업체)."
+            "공학관교직원식당(외부업체). "
+            "경국대: 이룸관(안동, 학생식당), 채움관(안동, 교직원식당), 양식코너(안동), 학생식당(예천)."
         ),
     )
     sourceUrl: str = Field(..., min_length=1)
@@ -44,9 +46,7 @@ class PythonMealCrawlRequest(BaseModel):
                 f"조회 기간은 최대 {MAX_WEEK_FETCHES}주까지 허용됩니다."
             )
         host = urlparse(self.sourceUrl).hostname
-        if not is_knu_host(host):
-            self.cafeteriaName = normalize_kumoh_cafeteria_name(self.cafeteriaName)
-        else:
+        if is_knu_host(host):
             name = self.cafeteriaName.strip()
             if name not in SHOP_NAMES.values():
                 raise ValueError(
@@ -55,6 +55,17 @@ class PythonMealCrawlRequest(BaseModel):
                     "공학관교직원식당(외부업체) 중 하나를 사용하세요."
                 )
             self.cafeteriaName = name
+        elif is_gknu_host(host):
+            name = self.cafeteriaName.strip()
+            if name not in MENU_IDX_NAMES.values():
+                raise ValueError(
+                    "지원하지 않는 경국대 식당명입니다. "
+                    "이룸관(안동, 학생식당), 채움관(안동, 교직원식당), "
+                    "양식코너(안동), 학생식당(예천) 중 하나를 사용하세요."
+                )
+            self.cafeteriaName = name
+        else:
+            self.cafeteriaName = normalize_kumoh_cafeteria_name(self.cafeteriaName)
         return self
 
 

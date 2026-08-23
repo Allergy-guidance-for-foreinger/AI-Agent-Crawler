@@ -26,6 +26,17 @@ MEAL_CRAWL_REQUEST_OPENAPI_EXAMPLES: dict = {
             "endDate": "2026-08-01",
         },
     },
+    "경국대": {
+        "summary": "경국대 이룸관(안동, 학생식당) 일별 조회",
+        "description": "Accept-Language: ko 권장",
+        "value": {
+            "schoolName": "국립경국대학교",
+            "cafeteriaName": "이룸관(안동, 학생식당)",
+            "sourceUrl": "https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82",
+            "startDate": "2026-07-20",
+            "endDate": "2026-07-24",
+        },
+    },
 }
 
 MEAL_CRAWL_SUCCESS_EXAMPLE: dict = {

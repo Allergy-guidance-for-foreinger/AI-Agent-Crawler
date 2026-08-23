@@ -15,7 +15,7 @@
   - 외부 I/O 오케스트레이션(Spring HTTP, Gemini 호출, 크롤 유스케이스 위임)
 - `app/domain`
   - 도메인 모델 및 정책
-  - 학교별 크롤러 어댑터(`crawler/kumoh_menu.py`, `crawler/knu_menu.py`)는 소스 HTML fetch를 포함할 수 있습니다.
+  - 학교별 크롤러 어댑터(`crawler/kumoh_menu.py`, `crawler/knu_menu.py`, `crawler/gknu_menu.py`)는 소스 HTML fetch를 포함할 수 있습니다.
 - `app/schemas`
   - 요청/응답 Pydantic 모델 및 OpenAPI 예시
 - `app/config`

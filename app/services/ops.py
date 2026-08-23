@@ -22,6 +22,11 @@ from pandas.errors import ParserError
 
 from app.config.runtime import ALLOWED_ACCEPT_LANGUAGES, ServiceConfig
 from app.domain.allergy.agent import analyze_menus_with_gemini, iter_menu_entries, results_to_dataframe
+from app.domain.crawler.gknu_menu import (
+    GKNU_HOSTS,
+    build_gknu_daily_meals,
+    is_gknu_host,
+)
 from app.domain.crawler.knu_menu import (
     KNU_HOSTS,
     build_knu_daily_meals,
@@ -42,6 +47,7 @@ DEFAULT_SOURCE_ALLOWLIST = {
     "www.kumoh.ac.kr",
     "kumoh.ac.kr",
     *KNU_HOSTS,
+    *GKNU_HOSTS,
 }
 MEAL_TYPE_ORDER = {"BREAKFAST": 0, "LUNCH": 1, "DINNER": 2}
 logger = logging.getLogger(__name__)
@@ -563,6 +569,13 @@ def crawl_daily_meals(
             start=start,
             end=end,
         )
+    if is_gknu_host(hostname):
+        return build_gknu_daily_meals(
+            cafeteria_name=cafeteria_name,
+            source_url=source_url,
+            start=start,
+            end=end,
+        )
 
     cafeteria_name = normalize_kumoh_cafeteria_name(cafeteria_name)
     table = load_menu_table_for_source(cafeteria_name=cafeteria_name, source_url=source_url)
@@ -570,12 +583,13 @@ def crawl_daily_meals(
 
 
 def load_menu_table_for_source(*, cafeteria_name: str, source_url: str) -> pd.DataFrame:
-    """금오공대 HTML → DataFrame. 경북대는 crawl_daily_meals를 사용하세요."""
+    """금오공대 HTML → DataFrame. 경북대·경국대는 crawl_daily_meals를 사용하세요."""
     cafeteria_name = normalize_kumoh_cafeteria_name(cafeteria_name)
     _validate_source_url(source_url)
-    if is_knu_host(urlparse(source_url).hostname):
+    host = urlparse(source_url).hostname
+    if is_knu_host(host) or is_gknu_host(host):
         raise RuntimeError(
-            "경북대 sourceUrl은 DataFrame 로드를 지원하지 않습니다. crawl_daily_meals를 사용하세요."
+            "경북대·경국대 sourceUrl은 DataFrame 로드를 지원하지 않습니다. crawl_daily_meals를 사용하세요."
         )
     source_fetch_error: BaseException | None = None
 
