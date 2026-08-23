@@ -164,6 +164,9 @@ public record PythonMealCrawlRequest(
 
 `sourceUrl` 호스트로 학교 어댑터를 선택합니다. `cafeteriaName`은 아래 표와 일치해야 합니다(금오는 구명칭 학생식당·교직원식당을 자동 치환).
 
+경북대·경국대는 **쿼리 파라미터만 있으면** 경로를 생략해도 됩니다. 서버가 조회용 정규 경로로 보정합니다.
+예: `https://coop.knu.ac.kr/?shop_sqno=35`, `https://www.gknu.ac.kr/?menu_idx=82`
+
 #### 금오공과대학교 (`www.kumoh.ac.kr`)
 
 | cafeteriaName | sourceUrl |

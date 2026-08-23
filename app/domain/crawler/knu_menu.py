@@ -15,6 +15,8 @@ from lxml.etree import ParserError, _Element
 logger = logging.getLogger(__name__)
 
 KNU_HOSTS = frozenset({"coop.knu.ac.kr", "www.coop.knu.ac.kr"})
+# 식단 페이지 정규 경로. 루트 `/?shop_sqno=` 만으로는 week_table이 오지 않습니다.
+KNU_MENU_PATH = "/sub03/sub01_01.html"
 
 # shop_sqno → 식당명 (요청된 5개)
 SHOP_NAMES: dict[int, str] = {
@@ -62,6 +64,26 @@ def parse_shop_sqno(source_url: str) -> int | None:
     return int(raw)
 
 
+def normalize_knu_source_url(source_url: str) -> str:
+    """경북대 sourceUrl을 식단 페이지 정규 경로로 맞춥니다.
+
+    Spring 등에서 `https://coop.knu.ac.kr/?shop_sqno=35` 처럼 경로를 생략해도
+    조회에 필요한 `/sub03/sub01_01.html` 로 보정합니다.
+    """
+    parsed = urlparse(source_url)
+    if not is_knu_host(parsed.hostname):
+        return source_url
+    qs = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if "shop_sqno" not in qs:
+        return source_url
+    path = parsed.path or ""
+    if path.rstrip("/") == KNU_MENU_PATH.rstrip("/"):
+        return source_url
+    return urlunparse(
+        parsed._replace(path=KNU_MENU_PATH, query=urlencode(qs), params="", fragment="")
+    )
+
+
 def resolve_knu_cafeteria_name(cafeteria_name: str, source_url: str) -> str:
     """shop_sqno 기준 식당명을 확정하고, 요청명이 있으면 일치 여부를 검증합니다."""
     sqno = parse_shop_sqno(source_url)
@@ -80,7 +102,8 @@ def resolve_knu_cafeteria_name(cafeteria_name: str, source_url: str) -> str:
 
 
 def with_sel_date(source_url: str, sel_date: date) -> str:
-    parsed = urlparse(source_url)
+    normalized = normalize_knu_source_url(source_url)
+    parsed = urlparse(normalized)
     qs = dict(parse_qsl(parsed.query, keep_blank_values=True))
     qs["selDate"] = sel_date.isoformat()
     return urlunparse(parsed._replace(query=urlencode(qs)))
@@ -379,6 +402,7 @@ def build_knu_daily_meals(
     end: date,
 ) -> list[dict[str, Any]]:
     """기간을 덮는 selDate 창별로 fetch 후 meals를 병합합니다."""
+    source_url = normalize_knu_source_url(source_url)
     name = resolve_knu_cafeteria_name(cafeteria_name, source_url)
     sel_dates = week_sel_dates_covering(start, end)
     if len(sel_dates) > MAX_WEEK_FETCHES:

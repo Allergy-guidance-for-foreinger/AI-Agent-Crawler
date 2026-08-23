@@ -12,6 +12,7 @@ import requests
 from app.domain.crawler.gknu_menu import (
     build_gknu_daily_meals,
     food_view_url,
+    normalize_gknu_source_url,
     parse_gknu_day_html,
     parse_gknu_western_html,
     resolve_gknu_cafeteria_name,
@@ -88,6 +89,16 @@ class TestGknuWesternParse:
 class TestGknuHelpers:
     def test_food_view_url(self):
         assert food_view_url(73, date(2026, 7, 24)).endswith("manage_idx=73&memo5=2026-07-24")
+
+    def test_normalize_short_source_url(self):
+        assert (
+            normalize_gknu_source_url("https://www.gknu.ac.kr/?menu_idx=82")
+            == "https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82"
+        )
+        assert (
+            normalize_gknu_source_url("https://www.gknu.ac.kr/?menu_idx=317")
+            == "https://www.gknu.ac.kr/main/html.do?menu_idx=317"
+        )
 
     def test_resolve_rejects_name_mismatch(self):
         with pytest.raises(RuntimeError, match="일치하지 않습니다"):
@@ -188,6 +199,23 @@ class TestGknuBuildDailyMeals:
                 end=date(2026, 7, 24),
             )
         assert {m["mealType"] for m in meals} == {"BREAKFAST", "LUNCH"}
+
+    def test_crawl_accepts_short_source_url(self, view_73_html: str, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.delenv("CRAWL_SOURCE_ALLOWLIST", raising=False)
+        monkeypatch.setattr("app.services.ops.socket.getaddrinfo", _public_addrinfo)
+        with patch(
+            "app.domain.crawler.gknu_menu.fetch_html",
+            return_value=view_73_html,
+        ) as mocked:
+            meals = crawl_daily_meals(
+                cafeteria_name="이룸관(안동, 학생식당)",
+                source_url="https://www.gknu.ac.kr/?menu_idx=82",
+                start=date(2026, 7, 24),
+                end=date(2026, 7, 24),
+            )
+        assert meals
+        # 일별 view.do 호출이므로 referer/원본 정규화가 선행됨
+        assert mocked.call_count >= 1
 
     def test_blank_allowlist_falls_back_to_default(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setenv("CRAWL_SOURCE_ALLOWLIST", " , , ")
