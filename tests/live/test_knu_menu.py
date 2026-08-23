@@ -14,6 +14,7 @@ from app.domain.crawler.knu_menu import (
     parse_knu_week_html,
     resolve_knu_cafeteria_name,
     week_mondays_covering,
+    week_sel_dates_covering,
     with_sel_date,
 )
 from app.services.ops import DEFAULT_SOURCE_ALLOWLIST, _validate_source_url, crawl_daily_meals
@@ -112,6 +113,16 @@ class TestKnuHelpers:
             date(2026, 8, 3),
         ]
 
+    def test_week_sel_dates_covering(self):
+        # 일요일 시작도 start 자체를 selDate로 사용 (월요일로 되돌리지 않음)
+        assert week_sel_dates_covering(date(2026, 8, 23), date(2026, 8, 30)) == [
+            date(2026, 8, 23),
+            date(2026, 8, 29),
+        ]
+        assert week_sel_dates_covering(date(2026, 8, 23), date(2026, 8, 23)) == [
+            date(2026, 8, 23),
+        ]
+
     def test_with_sel_date(self):
         url = with_sel_date(
             "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
@@ -152,7 +163,7 @@ class TestKnuBuildDailyMeals:
 
         def fake_fetch(url: str):
             calls["n"] += 1
-            if "2026-08-03" in url:
+            if "2026-08-02" in url:
                 raise requests.exceptions.Timeout("boom")
             return shop35_html
 
@@ -160,11 +171,46 @@ class TestKnuBuildDailyMeals:
             meals = build_knu_daily_meals(
                 cafeteria_name="정보센터식당",
                 source_url="https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
-                start=date(2026, 7, 31),
+                start=date(2026, 7, 27),
                 end=date(2026, 8, 5),
             )
         assert calls["n"] == 2
         assert any(m["mealDate"] == "2026-07-31" for m in meals)
+
+    def test_sunday_start_uses_start_as_sel_date(self, shop35_html: str):
+        """월요일로 내리면 이전 주만 조회되어 일요일이 meals에서 빠질 수 있음."""
+        sunday_html = """
+        <table class="tstyle_me"><tr>
+          <th>분류</th>
+          <th>월<p class="week_t">(08/23)</p></th>
+          <th>화<p class="week_t">(08/24)</p></th>
+        </tr></table>
+        <div class="week_table mt5">중식
+          <table><tr>
+            <td><div class="button_m">특식</div>
+              <ul class="menu_im"><li class="first">특식<p>일요일특식</p><p>￦ 6,000</p></li></ul>
+            </td>
+            <td><div class="button_m">특식</div>
+              <ul class="menu_im"><li class="first">특식<p>월요일특식</p><p>￦ 6,000</p></li></ul>
+            </td>
+          </tr></table>
+        </div>
+        """
+        with patch(
+            "app.domain.crawler.knu_menu.fetch_html",
+            return_value=sunday_html,
+        ) as mocked:
+            meals = build_knu_daily_meals(
+                cafeteria_name="정보센터식당",
+                source_url="https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35",
+                start=date(2026, 8, 23),
+                end=date(2026, 8, 23),
+            )
+        assert mocked.call_count == 1
+        assert "selDate=2026-08-23" in mocked.call_args.args[0]
+        assert len(meals) == 1
+        assert meals[0]["mealDate"] == "2026-08-23"
+        assert "일요일특식" in meals[0]["menus"][0]["menuName"]
 
     def test_crawl_daily_meals_routes_knu(self, shop35_html: str, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv("CRAWL_SOURCE_ALLOWLIST", raising=False)

@@ -261,7 +261,8 @@ public record PythonCrawledMenuDto(
 >
 > **메뉴 분리 규칙 (경북대)**: `week_table`의 `ul.menu_im > li`(가격 단위)로 메뉴를 분리합니다.
 > `cornerName`은 셀의 `특식`/`정식` 배지에서 가져오고, `mealType`은 중식/석식 테이블 라벨로 결정합니다.
-> 기간이 여러 주에 걸치면 `selDate`로 주차별 페이지를 조회해 병합합니다.
+> 기간이 여러 날에 걸치면 `selDate`(페이지 첫 칸 날짜)를 6일 간격으로 조회해 병합합니다.
+> `selDate`는 월요일이 아니라 요청 `startDate`부터 시작합니다.
 
 실패 응답 예시:
 

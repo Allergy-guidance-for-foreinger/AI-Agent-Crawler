@@ -13,7 +13,7 @@ from app.domain.crawler.knu_menu import (
     MAX_WEEK_FETCHES,
     SHOP_NAMES,
     is_knu_host,
-    week_mondays_covering,
+    week_sel_dates_covering,
 )
 from app.domain.crawler.kumoh_menu import normalize_kumoh_cafeteria_name
 
@@ -39,7 +39,7 @@ class PythonMealCrawlRequest(BaseModel):
     def validate_date_range_and_cafeteria(self):
         if self.startDate > self.endDate:
             raise ValueError("startDate는 endDate보다 이후일 수 없습니다.")
-        if len(week_mondays_covering(self.startDate, self.endDate)) > MAX_WEEK_FETCHES:
+        if len(week_sel_dates_covering(self.startDate, self.endDate)) > MAX_WEEK_FETCHES:
             raise ValueError(
                 f"조회 기간은 최대 {MAX_WEEK_FETCHES}주까지 허용됩니다."
             )
