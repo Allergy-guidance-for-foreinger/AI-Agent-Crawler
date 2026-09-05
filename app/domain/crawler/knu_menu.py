@@ -64,23 +64,33 @@ def parse_shop_sqno(source_url: str) -> int | None:
     return int(raw)
 
 
-def normalize_knu_source_url(source_url: str) -> str:
+def normalize_knu_source_url(source_url: str, *, cafeteria_name: str = "") -> str:
     """경북대 sourceUrl을 식단 페이지 정규 경로로 맞춥니다.
 
-    Spring 등에서 `https://coop.knu.ac.kr/?shop_sqno=35` 처럼 경로를 생략해도
-    조회에 필요한 `/sub03/sub01_01.html` 로 보정합니다.
+    - `https://coop.knu.ac.kr/?shop_sqno=35` → 경로 보정
+    - `https://coop.knu.ac.kr` 만 오면 cafeteriaName으로 shop_sqno를 채웁니다.
     """
     parsed = urlparse(source_url)
     if not is_knu_host(parsed.hostname):
         return source_url
     qs = dict(parse_qsl(parsed.query, keep_blank_values=True))
-    if "shop_sqno" not in qs:
-        return source_url
-    path = parsed.path or ""
-    if path.rstrip("/") == KNU_MENU_PATH.rstrip("/"):
-        return source_url
+    raw_sqno = (qs.get("shop_sqno") or "").strip()
+    if raw_sqno.isdigit():
+        qs["shop_sqno"] = str(int(raw_sqno))
+    else:
+        name = normalize_knu_cafeteria_name(cafeteria_name)
+        sqno = SHOP_BY_NAME.get(name)
+        if sqno is None:
+            return source_url
+        qs["shop_sqno"] = str(sqno)
+
     return urlunparse(
-        parsed._replace(path=KNU_MENU_PATH, query=urlencode(qs), params="", fragment="")
+        parsed._replace(
+            path=KNU_MENU_PATH,
+            query=urlencode(qs),
+            params="",
+            fragment="",
+        )
     )
 
 
@@ -101,8 +111,8 @@ def resolve_knu_cafeteria_name(cafeteria_name: str, source_url: str) -> str:
     return expected
 
 
-def with_sel_date(source_url: str, sel_date: date) -> str:
-    normalized = normalize_knu_source_url(source_url)
+def with_sel_date(source_url: str, sel_date: date, *, cafeteria_name: str = "") -> str:
+    normalized = normalize_knu_source_url(source_url, cafeteria_name=cafeteria_name)
     parsed = urlparse(normalized)
     qs = dict(parse_qsl(parsed.query, keep_blank_values=True))
     qs["selDate"] = sel_date.isoformat()
@@ -402,7 +412,7 @@ def build_knu_daily_meals(
     end: date,
 ) -> list[dict[str, Any]]:
     """기간을 덮는 selDate 창별로 fetch 후 meals를 병합합니다."""
-    source_url = normalize_knu_source_url(source_url)
+    source_url = normalize_knu_source_url(source_url, cafeteria_name=cafeteria_name)
     name = resolve_knu_cafeteria_name(cafeteria_name, source_url)
     sel_dates = week_sel_dates_covering(start, end)
     if len(sel_dates) > MAX_WEEK_FETCHES:

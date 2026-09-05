@@ -100,6 +100,22 @@ class TestGknuHelpers:
             == "https://www.gknu.ac.kr/main/html.do?menu_idx=317"
         )
 
+    def test_normalize_school_only_url_uses_cafeteria_name(self):
+        assert (
+            normalize_gknu_source_url(
+                "https://www.gknu.ac.kr",
+                cafeteria_name="이룸관(안동, 학생식당)",
+            )
+            == "https://www.gknu.ac.kr/main/module/foodMenu/index.do?menu_idx=82"
+        )
+        assert (
+            normalize_gknu_source_url(
+                "https://www.gknu.ac.kr/",
+                cafeteria_name="양식코너(안동)",
+            )
+            == "https://www.gknu.ac.kr/main/html.do?menu_idx=317"
+        )
+
     def test_resolve_rejects_name_mismatch(self):
         with pytest.raises(RuntimeError, match="일치하지 않습니다"):
             resolve_gknu_cafeteria_name(
