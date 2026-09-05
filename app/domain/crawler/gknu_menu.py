@@ -34,6 +34,8 @@ MENU_IDX_NAMES: dict[int, str] = {
     629: "학생식당(예천)",
 }
 
+MENU_IDX_BY_NAME: dict[str, int] = {name: idx for idx, name in MENU_IDX_NAMES.items()}
+
 # 일별 AJAX용 menu_idx → manage_idx
 MENU_IDX_TO_MANAGE: dict[int, int] = {
     82: 73,
@@ -72,23 +74,30 @@ def _gknu_path_for_menu_idx(menu_idx: int) -> str:
     return FOOD_MENU_PATH
 
 
-def normalize_gknu_source_url(source_url: str) -> str:
+def normalize_gknu_source_url(source_url: str, *, cafeteria_name: str = "") -> str:
     """경국대 sourceUrl을 식당별 정규 경로로 맞춥니다.
 
-    `https://www.gknu.ac.kr/?menu_idx=82` 처럼 경로를 생략해도
-    foodMenu/양식코너 페이지 경로로 보정합니다.
+    - `https://www.gknu.ac.kr/?menu_idx=82` → 경로 보정
+    - `https://www.gknu.ac.kr` 만 오면 cafeteriaName으로 menu_idx를 채웁니다.
     """
     parsed = urlparse(source_url)
     if not is_gknu_host(parsed.hostname):
         return source_url
-    menu_idx = parse_menu_idx(source_url)
-    if menu_idx is None or menu_idx not in MENU_IDX_NAMES:
-        return source_url
-    expected_path = _gknu_path_for_menu_idx(menu_idx)
-    path = parsed.path or ""
-    if path.rstrip("/") == expected_path.rstrip("/"):
-        return source_url
     qs = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    raw_idx = (qs.get("menu_idx") or "").strip()
+    if raw_idx.isdigit():
+        menu_idx = int(raw_idx)
+    else:
+        name = (cafeteria_name or "").strip()
+        menu_idx = MENU_IDX_BY_NAME.get(name)
+        if menu_idx is None:
+            return source_url
+        qs["menu_idx"] = str(menu_idx)
+
+    if menu_idx not in MENU_IDX_NAMES:
+        return source_url
+
+    expected_path = _gknu_path_for_menu_idx(menu_idx)
     return urlunparse(
         parsed._replace(
             path=expected_path,
@@ -283,7 +292,7 @@ def build_gknu_daily_meals(
     end: date,
 ) -> list[dict[str, Any]]:
     """경국대 식당별 소스를 조회해 표준 meals DTO를 반환합니다."""
-    source_url = normalize_gknu_source_url(source_url)
+    source_url = normalize_gknu_source_url(source_url, cafeteria_name=cafeteria_name)
     name = resolve_gknu_cafeteria_name(cafeteria_name, source_url)
     menu_idx = parse_menu_idx(source_url)
     assert menu_idx is not None  # resolve에서 이미 검증

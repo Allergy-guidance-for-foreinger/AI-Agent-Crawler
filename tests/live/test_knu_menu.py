@@ -137,9 +137,25 @@ class TestKnuHelpers:
             normalize_knu_source_url("https://coop.knu.ac.kr/?shop_sqno=35")
             == "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35"
         )
-        # 이미 정규 경로면 유지
+        # 이미 정규 경로면 shop_sqno 유지·경로 정규화
         full = "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35"
         assert normalize_knu_source_url(full) == full
+
+    def test_normalize_school_only_url_uses_cafeteria_name(self):
+        assert (
+            normalize_knu_source_url(
+                "https://coop.knu.ac.kr",
+                cafeteria_name="복지관 교직원식당",
+            )
+            == "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=36"
+        )
+        assert (
+            normalize_knu_source_url(
+                "https://coop.knu.ac.kr/",
+                cafeteria_name="정보센터식당",
+            )
+            == "https://coop.knu.ac.kr/sub03/sub01_01.html?shop_sqno=35"
+        )
 
     def test_with_sel_date_normalizes_short_url(self):
         url = with_sel_date("https://coop.knu.ac.kr/?shop_sqno=35", date(2026, 8, 24))
@@ -188,6 +204,22 @@ class TestKnuBuildDailyMeals:
         assert mocked.call_count == 1
         assert "/sub03/sub01_01.html" in mocked.call_args.args[0]
         assert "shop_sqno=35" in mocked.call_args.args[0]
+        assert len(meals) == 2
+
+    def test_build_accepts_school_only_source_url(self, shop35_html: str):
+        with patch(
+            "app.domain.crawler.knu_menu.fetch_html",
+            return_value=shop35_html,
+        ) as mocked:
+            meals = build_knu_daily_meals(
+                cafeteria_name="정보센터식당",
+                source_url="https://coop.knu.ac.kr",
+                start=date(2026, 7, 27),
+                end=date(2026, 7, 27),
+            )
+        assert mocked.call_count == 1
+        assert "shop_sqno=35" in mocked.call_args.args[0]
+        assert "/sub03/sub01_01.html" in mocked.call_args.args[0]
         assert len(meals) == 2
 
     def test_partial_week_fetch_failure_keeps_success(self, shop35_html: str):
