@@ -28,3 +28,6 @@ env/
 # 임시 (로컬 테스트용 pycache 경로 등)
 .pycache_tmp/
 .pyc_tmp/
+
+# 로컬 크롤 테스트 산출물
+crawl_test_outputs/
