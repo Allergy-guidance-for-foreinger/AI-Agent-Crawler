@@ -348,19 +348,11 @@ public record PythonCrawledMenuDto(
     "meals": [
       {
         "mealDate": "2026-07-24",
-        "mealType": "BREAKFAST",
-        "menus": [
-          { "cornerName": "조식", "displayOrder": 1, "menuName": "[천원의 아침밥]" }
-        ]
-      },
-      {
-        "mealDate": "2026-07-24",
         "mealType": "LUNCH",
         "menus": [
-          { "cornerName": "중식", "displayOrder": 1, "menuName": "[천원의 브런치]" },
-          { "cornerName": "중식", "displayOrder": 2, "menuName": "흑미밥" },
-          { "cornerName": "중식", "displayOrder": 3, "menuName": "쇠고기미역국" },
-          { "cornerName": "중식", "displayOrder": 4, "menuName": "꿔바로우" }
+          { "cornerName": "중식", "displayOrder": 1, "menuName": "흑미밥" },
+          { "cornerName": "중식", "displayOrder": 2, "menuName": "쇠고기미역국" },
+          { "cornerName": "중식", "displayOrder": 3, "menuName": "꿔바로우" }
         ]
       }
     ]
@@ -380,6 +372,8 @@ public record PythonCrawledMenuDto(
 > **메뉴 분리 규칙 (경국대)**: 일별 AJAX(`foodMenu/view.do`)의 `dl/dt/dd`에서 조식·중식·석식을 파싱하고 `<br>` 단위로 메뉴를 분리합니다.
 > 양식코너는 고정 가격표 HTML을 1회 조회한 뒤 요청 기간의 평일(월~금)에만 `LUNCH`로 동일 메뉴를 반복합니다(주말 제외).
 > `미 운 영`·빈 칸은 제외합니다.
+
+> **공통 안내 필터**: 구분선, `끝`, 운영 시간·장소 안내, `미운영`·`석식없음`, 명절 휴무·인사 문구, `천원의 아침밥` 같은 제목, `or` 같은 선택 연결어는 메뉴에서 제외합니다. 안내만 남은 끼니는 반환하지 않습니다. `*돼지국밥`처럼 별표가 붙은 실제 음식명은 유지합니다. 이는 안내 문구 필터이며, 양식코너의 공휴일 운영 여부를 판단하지는 않습니다.
 
 실패 응답 예시:
 
@@ -1011,4 +1005,3 @@ curl -sS -X POST "https://api.your-domain.com/api/v1/python/menus/analyze" \
 - `AI_001` 응답: `GEMINI_API_KEY` 누락/오타
 - OCR 결과 빈 값: 업로드 이미지 품질/해상도 확인, 메뉴판 crop 후 재시도
 - 크롤링 차단: `CRAWL_SOURCE_ALLOWLIST` 설정값과 실제 도메인 일치 확인
-

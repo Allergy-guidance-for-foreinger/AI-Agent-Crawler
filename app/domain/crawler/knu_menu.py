@@ -11,6 +11,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 import requests
 from lxml import html as lhtml
 from lxml.etree import ParserError, _Element
+from app.domain.crawler.menu_filter import is_menu_notice
 
 logger = logging.getLogger(__name__)
 
@@ -364,7 +365,7 @@ def parse_knu_week_html(
                     chunks = _PRICE_RE.split(cell_text)
                 for chunk in chunks:
                     name = _clean_menu_name(chunk)
-                    if not name:
+                    if is_menu_notice(name):
                         continue
                     menus.append(
                         {
@@ -376,7 +377,7 @@ def parse_knu_week_html(
             else:
                 for li in items:
                     name = _menu_name_from_li(li)
-                    if not name:
+                    if is_menu_notice(name):
                         continue
                     menus.append(
                         {

@@ -14,6 +14,7 @@ from lxml import html as lhtml
 from lxml.etree import ParserError, _Element
 
 from app.domain.crawler.knu_menu import MAX_WEEK_FETCHES, week_mondays_covering
+from app.domain.crawler.menu_filter import is_menu_notice
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +169,7 @@ def _split_dd_menus(dd: _Element) -> list[str]:
     def flush() -> None:
         name = " ".join("".join(buf).split()).strip()
         buf.clear()
-        if not name:
+        if is_menu_notice(name):
             return
         if _CLOSED_RE.search(name):
             return
@@ -259,7 +260,7 @@ def parse_gknu_western_html(html: str) -> list[dict[str, Any]]:
             if len(cells) < 1:
                 continue
             name = _text(cells[0])
-            if not name or name in _HEADER_SKIP:
+            if is_menu_notice(name) or name in _HEADER_SKIP:
                 continue
             if "대표메뉴" in name and "가격" in name:
                 continue

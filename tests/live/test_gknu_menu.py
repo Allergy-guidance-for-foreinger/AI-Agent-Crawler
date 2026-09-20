@@ -49,14 +49,12 @@ def _public_addrinfo(host, port, *args, **kwargs):
 class TestGknuDayParse:
     def test_iroom_lunch_and_breakfast(self, view_73_html: str):
         meals = parse_gknu_day_html(view_73_html, meal_date=date(2026, 7, 24))
-        assert {m["mealType"] for m in meals} == {"BREAKFAST", "LUNCH"}
-        breakfast = next(m for m in meals if m["mealType"] == "BREAKFAST")
-        assert breakfast["menus"][0]["cornerName"] == "조식"
-        assert "[천원의 아침밥]" in breakfast["menus"][0]["menuName"]
+        # 조식에는 안내 제목만 있으므로 식단으로 반환하지 않습니다.
+        assert {m["mealType"] for m in meals} == {"LUNCH"}
 
         lunch = next(m for m in meals if m["mealType"] == "LUNCH")
         names = [item["menuName"] for item in lunch["menus"]]
-        assert names[0] == "[천원의 브런치]"
+        assert names[0] == "흑미밥"
         assert "흑미밥" in names
         assert "꿔바로우" in names
         assert all(item["cornerName"] == "중식" for item in lunch["menus"])
@@ -214,7 +212,7 @@ class TestGknuBuildDailyMeals:
                 start=date(2026, 7, 24),
                 end=date(2026, 7, 24),
             )
-        assert {m["mealType"] for m in meals} == {"BREAKFAST", "LUNCH"}
+        assert {m["mealType"] for m in meals} == {"LUNCH"}
 
     def test_crawl_accepts_short_source_url(self, view_73_html: str, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv("CRAWL_SOURCE_ALLOWLIST", raising=False)
