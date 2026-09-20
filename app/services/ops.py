@@ -33,6 +33,7 @@ from app.domain.crawler.knu_menu import (
     is_knu_host,
 )
 from app.domain.crawler.kumoh_menu import MENU_ITEM_DELIM, load_menus, normalize_kumoh_cafeteria_name, parse_table_from_html
+from app.domain.crawler.menu_filter import is_menu_notice
 from app.domain.crawler.push_menus import post_menu_ingest
 from app.services.allergen_mapping import (
     format_mfds_labels_for_prompt,
@@ -350,14 +351,12 @@ _META_BRACKET_RE = re.compile(r"^\[.*\]$")
 
 
 def _is_menu_noise(line: str) -> bool:
-    """시간 범위, 대괄호 메타정보, 별표 안내문 등 메뉴명이 아닌 항목 판별."""
+    """시간 범위, 메타정보, 운영 안내 등 메뉴명이 아닌 항목 판별."""
     if _TIME_RANGE_RE.match(line):
         return True
     if _META_BRACKET_RE.match(line):
         return True
-    if line.startswith("*"):
-        return True
-    return False
+    return is_menu_notice(line)
 
 
 _KNOWN_CORNERS = frozenset({"조식", "중식", "석식", "일품요리"})
@@ -370,7 +369,7 @@ _BUNSIK_PORK_CUTLET_MENUS = ("왕돈가스", "고구마돈가스", "치즈돈가
 def _expand_bunsik_category_tokens(menu_items: list[str]) -> list[str]:
     expanded: list[str] = []
     for item in menu_items:
-        s = item.strip()
+        s = item.strip().strip("*★☆ ")
         if s == "라면류":
             expanded.extend(_BUNSIK_RAMEN_MENUS)
         elif s == "돈가스류":
