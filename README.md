@@ -348,19 +348,11 @@ public record PythonCrawledMenuDto(
     "meals": [
       {
         "mealDate": "2026-07-24",
-        "mealType": "BREAKFAST",
-        "menus": [
-          { "cornerName": "조식", "displayOrder": 1, "menuName": "[천원의 아침밥]" }
-        ]
-      },
-      {
-        "mealDate": "2026-07-24",
         "mealType": "LUNCH",
         "menus": [
-          { "cornerName": "중식", "displayOrder": 1, "menuName": "[천원의 브런치]" },
-          { "cornerName": "중식", "displayOrder": 2, "menuName": "흑미밥" },
-          { "cornerName": "중식", "displayOrder": 3, "menuName": "쇠고기미역국" },
-          { "cornerName": "중식", "displayOrder": 4, "menuName": "꿔바로우" }
+          { "cornerName": "중식", "displayOrder": 1, "menuName": "흑미밥" },
+          { "cornerName": "중식", "displayOrder": 2, "menuName": "쇠고기미역국" },
+          { "cornerName": "중식", "displayOrder": 3, "menuName": "꿔바로우" }
         ]
       }
     ]
